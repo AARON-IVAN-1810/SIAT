@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #f4f6fb;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="12.0" style="-fx-background-color: #ffffff;">
+            <padding>
+                <Insets bottom="8.0" left="14.0" right="14.0" top="8.0" />
+            </padding>
+
+            <Label text="Asistencia">
+                <font>
+                    <Font name="Arial Black" size="17.0" />
+                </font>
+            </Label>
+
+            <Region HBox.hgrow="ALWAYS" />
+
+            <HBox alignment="CENTER_LEFT" prefHeight="32.0" spacing="6.0" style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;">
+                <padding>
+                    <Insets left="8.0" right="8.0" />
+                </padding>
+
+                <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
+                    <image>
+                        <Image url="@../../fotos/IconoLupa.png" />
+                    </image>
+                </ImageView>
+
+                <TextField fx:id="txtBuscar" prefWidth="180.0" promptText="Buscar alumno, grupo..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                    <font>
+                        <Font size="13.0" />
+                    </font>
+                </TextField>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="6.0">
+                <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
+                    <image>
+                        <Image url="@../../fotos/IconoSalir.png" />
+                    </image>
+                </ImageView>
+
+                <Button fx:id="btnCerrarSesion" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Cerrar Sesion">
+                    <font>
+                        <Font name="Arial Black" size="12.0" />
+                    </font>
+                </Button>
+            </HBox>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="18.0" style="-fx-background-color: #f4f6fb;">
+            <padding>
+                <Insets bottom="18.0" left="18.0" right="18.0" top="18.0" />
+            </padding>
+
+            <VBox spacing="4.0">
+                <Label style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Asistencia" />
+                <Label style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" text="Registro y consulta de asistencia" />
+            </VBox>
+
+            <VBox spacing="16.0" style="-fx-background-color: white; -fx-background-radius: 16; -fx-border-radius: 16; -fx-border-color: #e5e7eb;">
+                <padding>
+                    <Insets bottom="18.0" left="18.0" right="18.0" top="18.0" />
+                </padding>
+
+                <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Registrar asistencia del dia" />
+
+                <HBox alignment="CENTER_LEFT" spacing="14.0">
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" text="Grupo" />
+                        <ComboBox fx:id="cbGrupo" prefHeight="40.0" prefWidth="200.0" promptText="Seleccione Grupo" style="-fx-background-color: #eaf1fb;" />
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" text="Turno" />
+                        <TextField fx:id="txtTurno" editable="false" focusTraversable="false" prefHeight="40.0" prefWidth="150.0" promptText="Automatico" style="-fx-background-color: #f3f4f6; -fx-background-radius: 10; -fx-border-color: #d1d5db; -fx-border-radius: 10;" />
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" text="Materia" />
+                        <ComboBox fx:id="cbMateria" prefHeight="40.0" prefWidth="220.0" promptText="Seleccione Materia" style="-fx-background-color: #eaf1fb;" />
+                    </VBox>
+
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" text="Fecha" />
+                        <DatePicker fx:id="dpFecha" prefHeight="40.0" prefWidth="170.0" style="-fx-background-color: #ffffff;" />
+                    </VBox>
+
+                    <Region HBox.hgrow="ALWAYS" />
+
+                    <Button fx:id="btnCargar" prefHeight="40.0" prefWidth="110.0" style="-fx-background-color: #0b57d0; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;" text="Cargar" />
+
+                    <Button fx:id="btnTodosAsistieron" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 10; -fx-cursor: hand;" text="Todos asistieron" />
+
+                    <Button fx:id="btnLimpiar" prefHeight="40.0" prefWidth="110.0" style="-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 10; -fx-cursor: hand;" text="Limpiar" />
+
+                    <Button fx:id="btnGuardarAsistencia" prefHeight="40.0" prefWidth="190.0" style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;" text="Guardar asistencia" />
+                </HBox>
+
+                <HBox alignment="CENTER_LEFT" spacing="8.0" style="-fx-background-color: #eef4fb; -fx-background-radius: 12; -fx-border-radius: 12;">
+                    <padding>
+                        <Insets bottom="12.0" left="14.0" right="14.0" top="12.0" />
+                    </padding>
+
+                    <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Fecha:" />
+                    <Label fx:id="lblFechaSeleccionada" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="Sin fecha seleccionada" />
+
+                    <Label style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" text="•" />
+
+                    <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Grupo:" />
+                    <Label fx:id="lblGrupoSeleccionado" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="Sin grupo" />
+
+                    <Label style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" text="•" />
+
+                    <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Turno:" />
+                    <Label fx:id="lblTurnoSeleccionado" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="Sin turno" />
+
+                    <Label style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" text="•" />
+
+                    <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Materia:" />
+                    <Label fx:id="lblMateriaSeleccionada" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="Sin materia" />
+
+                    <Label style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" text="•" />
+
+                    <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Alumnos:" />
+                    <Label fx:id="lblTotalAlumnos" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="0" />
+                </HBox>
+
+                <VBox spacing="10.0" style="-fx-background-color: #eef4fb; -fx-background-radius: 14; -fx-border-radius: 14;">
+                    <padding>
+                        <Insets bottom="14.0" left="14.0" right="14.0" top="14.0" />
+                    </padding>
+
+                    <TableView fx:id="tablaAsistencia" prefHeight="360.0" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colNoControl" prefWidth="150.0" text="No. Control" />
+                            <TableColumn fx:id="colNombreAlumno" prefWidth="260.0" text="Nombre del Alumno" />
+                            <TableColumn fx:id="colGrupo" prefWidth="120.0" text="Grupo" />
+                            <TableColumn fx:id="colTurno" prefWidth="120.0" text="Turno" />
+                            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
+                        </columns>
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                    </TableView>
+                </VBox>
+
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

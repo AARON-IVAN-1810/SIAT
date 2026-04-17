@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #e5e8f2;" stylesheets="@../../styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+
+    <!-- TOP -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12.0" style="-fx-background-color: #ffffff;">
+            <padding>
+                <Insets bottom="8" left="14" right="14" top="8" />
+            </padding>
+
+            <Label text="Mi Perfil">
+                <font>
+                    <Font name="Arial Black" size="15" />
+                </font>
+            </Label>
+
+            <Region HBox.hgrow="ALWAYS" />
+            <ImageView fitHeight="28.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                <image>
+                    <Image url="@../../fotos/IconoSalir.png" />
+                </image>
+            </ImageView>
+
+            <Button prefHeight="26.0" prefWidth="100.0" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Cerrar Sesion" />
+        </HBox>
+    </top>
+
+    <!-- CENTER -->
+    <center>
+        <VBox spacing="15">
+            <padding>
+                <Insets bottom="15" left="15" right="15" top="15" />
+            </padding>
+
+            <!-- encabezado -->
+            <VBox spacing="3">
+                <Label text="Configuracion de Usuario">
+                    <font>
+                        <Font name="Arial Black" size="18" />
+                    </font>
+                </Label>
+
+                <Label style="-fx-text-fill: #7a7a7a;" text="Administra tu informacion personal y credenciales">
+                    <font>
+                        <Font size="12" />
+                    </font>
+                </Label>
+            </VBox>
+
+            <!-- CARD -->
+            <VBox spacing="20" style="-fx-background-color: white; -fx-background-radius: 15;" VBox.vgrow="ALWAYS">
+
+                <padding>
+                    <Insets bottom="20" left="20" right="20" top="20" />
+                </padding>
+
+                <!-- DATOS -->
+                <VBox spacing="10">
+                    <Label text="Datos personales">
+                        <font>
+                            <Font name="Arial Black" size="15" />
+                        </font>
+                    </Label>
+
+                    <HBox spacing="15">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Nombre completo" />
+                            <TextField fx:id="txtNombre" />
+                        </VBox>
+
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Numero de empleado" />
+                            <TextField fx:id="txtNumEmpleado" editable="false" style="-fx-background-color: #f0f0f0;" />
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="15">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Correo institucional" />
+                            <TextField fx:id="txtCorreo" />
+                        </VBox>
+
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Telefono" />
+                            <TextField fx:id="txtTelefono" />
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <Separator />
+
+                <!-- PASSWORD -->
+                <VBox spacing="10">
+                    <Label text="Cambiar contraseña">
+                        <font>
+                            <Font name="Arial Black" size="15" />
+                        </font>
+                    </Label>
+
+                    <HBox spacing="15">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Contraseña actual" />
+                            <PasswordField fx:id="txtActual" />
+                        </VBox>
+
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Nueva contraseña" />
+                            <PasswordField fx:id="txtNueva" />
+                        </VBox>
+                    </HBox>
+
+                    <VBox maxWidth="300" spacing="5">
+                        <Label text="Confirmar contraseña" />
+                        <PasswordField fx:id="txtConfirmar" />
+                    </VBox>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS" />
+
+                <!-- BOTONES -->
+                <HBox alignment="CENTER_RIGHT" spacing="10">
+                    <Button style="-fx-background-color: #d1d5db; -fx-background-radius: 10; -fx-cursor: hand;" text="Cancelar" />
+
+                    <Button prefWidth="180" style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;" text="Guardar cambios" />
+                </HBox>
+
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

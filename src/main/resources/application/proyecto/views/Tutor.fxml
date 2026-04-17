@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Line?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="650.0" prefWidth="1000.0" style="-fx-background-color: #e5e8f2;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.proyecto.controllers.TutorController">
+
+   <left>
+      <VBox prefWidth="240.0" spacing="10.0" style="-fx-background-color: #1F2A44;" BorderPane.alignment="CENTER">
+         <padding>
+            <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
+         </padding>
+
+         <children>
+            <AnchorPane maxHeight="90.0" minHeight="90.0" prefHeight="90.0">
+               <children>
+                  <ImageView fitHeight="80.0" fitWidth="72.0" layoutX="-2.0" layoutY="-2.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/LOGO.png" />
+                     </image>
+                  </ImageView>
+
+                  <Label layoutX="98.0" layoutY="-2.0" text="S.I.A.T" textFill="WHITE">
+                     <font>
+                        <Font size="32.0" />
+                     </font>
+                  </Label>
+
+                  <Label alignment="CENTER" contentDisplay="CENTER" layoutX="77.0" layoutY="38.0" prefWidth="125.0" text="Tutor" textFill="WHITE">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                  </Label>
+               </children>
+            </AnchorPane>
+
+            <Line endX="210.0" stroke="WHITE" strokeWidth="3.0" />
+
+            <ToggleButton fx:id="btnInicio" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#ClickInicio" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Inicio" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="37.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoInicio.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnGestionAlertas" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#ClickGestionAlertas" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Gestion de alertas" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="35.0" fitWidth="36.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoConducta.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnOrientacion" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#ClickOrientacion" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Orientacion" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="35.0" fitWidth="37.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoOrientacion.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnReporte" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#ClickReporte" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Bitacora" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="36.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoBitacora.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+            <Region VBox.vgrow="ALWAYS" />
+
+
+            <ToggleButton fx:id="btnperfil" alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectPerfil" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Perfil" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="38.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoUsuarioB.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </ToggleButton>
+
+
+         </children>
+      </VBox>
+   </left>
+
+   <center>
+      <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
+         <children>
+            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: #e5e8f2; -fx-background: #e5e8f2;" vbarPolicy="AS_NEEDED">
+               <content>
+                  <BorderPane minHeight="600.0" style="-fx-background-color: #e5e8f2;">
+
+                     <center>
+                        <VBox alignment="CENTER" spacing="10.0">
+                           <children>
+                              <VBox alignment="CENTER_LEFT" maxWidth="700.0" spacing="4.0" />
+
+                              <ImageView fitHeight="320.0" fitWidth="320.0" pickOnBounds="true" preserveRatio="true">
+                                 <image>
+                                    <Image url="@../fotos/LOGO.png" />
+                                 </image>
+                              </ImageView>
+                           </children>
+                        </VBox>
+                     </center>
+
+                  </BorderPane>
+               </content>
+            </ScrollPane>
+         </children>
+      </StackPane>
+   </center>
+</BorderPane>

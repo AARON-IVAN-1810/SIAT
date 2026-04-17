@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefWidth="900.0" prefHeight="700.0"
+            xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml/1"
+            style="-fx-background-color: #f4f6fb;">
+
+   <!-- barra superior -->
+   <top>
+      <HBox alignment="CENTER_LEFT"
+            spacing="12.0"
+            prefHeight="50.0"
+            style="-fx-background-color: #ffffff;">
+         <padding>
+            <Insets top="8.0" right="14.0" bottom="8.0" left="14.0"/>
+         </padding>
+
+         <Label text="Estadisticas">
+            <font>
+               <Font name="Arial Black" size="17.0"/>
+            </font>
+         </Label>
+
+         <Region HBox.hgrow="ALWAYS"/>
+
+         <HBox alignment="CENTER_LEFT"
+               spacing="6.0"
+               style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;"
+               prefHeight="32.0">
+            <padding>
+               <Insets left="8.0" right="8.0"/>
+            </padding>
+
+            <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
+               <image>
+                  <Image url="@../../fotos/IconoLupa.png" />
+               </image>
+            </ImageView>
+
+            <TextField promptText="Buscar alumno, grupo..."
+                       prefWidth="180.0"
+                       style="-fx-background-color: transparent; -fx-border-color: transparent;">
+               <font>
+                  <Font size="13.0"/>
+               </font>
+            </TextField>
+         </HBox>
+
+         <HBox alignment="CENTER_LEFT" spacing="6.0">
+            <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
+               <image>
+                  <Image url="@../../fotos/IconoSalir.png" />
+               </image>
+            </ImageView>
+
+            <Button text="Cerrar Sesion"
+                    style="-fx-background-color: transparent;">
+               <font>
+                  <Font name="Arial Black" size="12.0"/>
+               </font>
+            </Button>
+         </HBox>
+      </HBox>
+   </top>
+
+   <!-- contenido -->
+   <center>
+      <ScrollPane fitToWidth="true"
+                  hbarPolicy="NEVER"
+                  vbarPolicy="AS_NEEDED"
+                  style="-fx-background: #f4f6fb; -fx-background-color: #f4f6fb;">
+         <content>
+            <VBox spacing="18.0" style="-fx-background-color: #f4f6fb;">
+               <padding>
+                  <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+               </padding>
+
+               <!-- titulo -->
+               <VBox spacing="4.0">
+                  <Label text="Estadisticas"
+                         style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                  <Label text="Metricas y comparativas"
+                         style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
+               </VBox>
+
+               <!-- paneles superiores -->
+               <HBox spacing="18.0">
+
+                  <!-- estadisticas por grupo -->
+                  <VBox HBox.hgrow="ALWAYS"
+                        spacing="14.0"
+                        style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                     <padding>
+                        <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                     </padding>
+
+                     <Label text="Estadisticas por grupo"
+                            style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                     <ComboBox prefHeight="38.0"
+                               promptText="Seleccione Grupo"
+                               style="-fx-background-color: #eaf1fb;" />
+
+                     <Button text="Generar"
+                             prefHeight="35.0"
+                             maxWidth="1.7976931348623157E308"
+                             style="-fx-background-color: #0b57d0; -fx-text-fill: white;" />
+                  </VBox>
+
+                  <!-- comparar grupos -->
+                  <VBox HBox.hgrow="ALWAYS"
+                        spacing="12.0"
+                        style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                     <padding>
+                        <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                     </padding>
+
+                     <Label text="Comparar grupos"
+                            style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                     <HBox spacing="12.0">
+                        <ComboBox HBox.hgrow="ALWAYS"
+                                  prefHeight="35.0"
+                                  maxWidth="1.7976931348623157E308"
+                                  promptText="Seleccione Grupo"
+                                  style="-fx-background-color: #eaf1fb;" />
+
+                        <ComboBox HBox.hgrow="ALWAYS"
+                                  prefHeight="35.0"
+                                  maxWidth="1.7976931348623157E308"
+                                  promptText="Seleccione Grupo"
+                                  style="-fx-background-color: #eaf1fb;" />
+                     </HBox>
+
+                     <Label text="Seleccione los grupos para comparar"
+                            style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
+
+                     <Button text="Generar"
+                             prefHeight="35.0"
+                             maxWidth="1.7976931348623157E308"
+                             style="-fx-background-color: #0b57d0; -fx-text-fill: white;" />
+                  </VBox>
+               </HBox>
+
+               <!-- metricas -->
+               <VBox spacing="12.0"
+                     style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                  <padding>
+                     <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                  </padding>
+
+                  <Label text="Estadisticas por grupo"
+                         style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                  <HBox spacing="16.0">
+
+                     <VBox HBox.hgrow="ALWAYS"
+                           spacing="8.0"
+                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding>
+                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
+                        </padding>
+
+                        <Label text="Total Alumnos"
+                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        <Label text="0"
+                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                     </VBox>
+
+                     <VBox HBox.hgrow="ALWAYS"
+                           spacing="8.0"
+                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding>
+                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
+                        </padding>
+
+                        <Label text="Promedio General"
+                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        <Label text="0"
+                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                     </VBox>
+
+                     <VBox HBox.hgrow="ALWAYS"
+                           spacing="8.0"
+                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding>
+                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
+                        </padding>
+
+                        <Label text="Alertas"
+                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        <Label text="0"
+                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                     </VBox>
+                  </HBox>
+               </VBox>
+
+               <!-- comparacion -->
+               <VBox spacing="12.0"
+                     style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                  <padding>
+                     <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                  </padding>
+
+                  <Label text="Comparacion por grupo"
+                         style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                  <TableView fx:id="tablaComparacionGrupos"
+                             VBox.vgrow="ALWAYS"
+                             prefHeight="220.0">
+                     <columns>
+                        <TableColumn text="Grupos" prefWidth="120.0" />
+                        <TableColumn text="Total de alumnos" prefWidth="150.0" />
+                        <TableColumn text="Promedio general" prefWidth="160.0" />
+                        <TableColumn text="Alertas" prefWidth="120.0" />
+                     </columns>
+                  </TableView>
+               </VBox>
+
+            </VBox>
+         </content>
+      </ScrollPane>
+   </center>
+</BorderPane>

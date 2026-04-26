@@ -15,7 +15,7 @@ public class LoginApplication extends Application {
         stage.setTitle("LOGIN");
         stage.setScene(scene);
         stage.setMaximized(false);
-        stage.setFullScreen(false); // (oculta barra del sistema)
+        stage.setFullScreen(false); 
         stage.show();
     }
 

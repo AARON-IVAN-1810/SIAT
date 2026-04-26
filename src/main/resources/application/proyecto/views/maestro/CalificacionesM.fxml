@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #f4f6fb;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane fx:controller="application.proyecto.controllers.maestros.CalificacionesMController" prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #f4f6fb;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
 
     <top>
         <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="12.0" style="-fx-background-color: #ffffff;">
@@ -56,7 +56,7 @@
                     </image>
                 </ImageView>
 
-                <Button fx:id="btnCerrarSesion" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Cerrar Sesion">
+                <Button fx:id="btnCerrarSesion" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Cerrar Sesion">
                     <font>
                         <Font name="Arial Black" size="12.0" />
                     </font>

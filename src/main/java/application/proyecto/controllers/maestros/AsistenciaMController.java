@@ -1,66 +1,72 @@
 package application.proyecto.controllers.maestros;
 
 import application.proyecto.controllers.BaseController;
+import application.proyecto.models.AlumnoAsistencia;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.CheckBox;
 
 public class AsistenciaMController extends BaseController {
 
-    // --- BARRA SUPERIOR ---
-    @FXML private TextField txtBuscar;
-    @FXML private Button btnCerrarSesion;
-
-    // --- FORMULARIO DE SELECCIÓN ---
-    @FXML private ComboBox<String> cbGrupo;
+    // --- FILTROS DE ARRIBA ---
+    @FXML private ComboBox<String> cmbGrupo;
+    @FXML private ComboBox<String> cmbMateria;
     @FXML private TextField txtTurno;
-    @FXML private ComboBox<String> cbMateria;
     @FXML private DatePicker dpFecha;
-    
-    // --- BOTONES DE ACCIÓN ---
-    @FXML private Button btnCargar;
-    @FXML private Button btnTodosAsistieron;
-    @FXML private Button btnLimpiar;
-    @FXML private Button btnGuardarAsistencia;
 
-    // --- ETIQUETAS DE RESUMEN (Labels) ---
-    @FXML private Label lblFechaSeleccionada;
-    @FXML private Label lblGrupoSeleccionado;
-    @FXML private Label lblTurnoSeleccionado;
-    @FXML private Label lblMateriaSeleccionada;
-    @FXML private Label lblTotalAlumnos;
+    // --- ETIQUETAS DE RESUMEN (La barra azul clarito) ---
+    @FXML private Label lblResumenFecha;
+    @FXML private Label lblResumenGrupo;
+    @FXML private Label lblResumenTurno;
+    @FXML private Label lblResumenMateria;
+    @FXML private Label lblResumenAlumnos;
 
-    // --- TABLA DE ASISTENCIA ---
-    @FXML private TableView<?> tablaAsistencia;
-    @FXML private TableColumn<?, ?> colNoControl;
-    @FXML private TableColumn<?, ?> colNombreAlumno;
-    @FXML private TableColumn<?, ?> colGrupo;
-    @FXML private TableColumn<?, ?> colTurno;
-    @FXML private TableColumn<?, ?> colEstado;
+    // --- TABLA PRINCIPAL ---
+    @FXML private TableView<AlumnoAsistencia> tablaAsistencia;
+    @FXML private TableColumn<AlumnoAsistencia, String> colNoControl;
+    @FXML private TableColumn<AlumnoAsistencia, String> colNombreAlumno;
+    @FXML private TableColumn<AlumnoAsistencia, String> colGrupo;
+    @FXML private TableColumn<AlumnoAsistencia, String> colTurno;
+    @FXML private TableColumn<AlumnoAsistencia, CheckBox> colEstado;
 
     @FXML
     public void initialize() {
-        System.out.println("Controlador de Asistencia (Maestros) inicializado.");
-        // Aquí puedes configurar valores iniciales para los ComboBox
+        System.out.println("✅ Pantalla de Asistencia cargada.");
+        
+        // 1. Configurar las columnas de la tabla con los nombres exactos de los Getters
+        colNoControl.setCellValueFactory(new PropertyValueFactory<>("numControl"));
+        colNombreAlumno.setCellValueFactory(new PropertyValueFactory<>("nombre"));
+        colGrupo.setCellValueFactory(new PropertyValueFactory<>("grupo"));
+        colTurno.setCellValueFactory(new PropertyValueFactory<>("turno"));
+        colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
+
+        application.proyecto.daos.MaestroDAO maestroDAO = new application.proyecto.daos.MaestroDAO();
+        int idMaestroLogueado = 1; // El ID de Juan Pérez
+
+        // 3. Llenar los ComboBox con la info real
+        cmbMateria.setItems(maestroDAO.obtenerNombresMaterias(idMaestroLogueado));
+        cmbGrupo.setItems(maestroDAO.obtenerNombresGrupos(idMaestroLogueado));
+
+        // 4. Seleccionar el primer elemento automáticamente para que no se vea vacío
+        if (!cmbMateria.getItems().isEmpty()) cmbMateria.getSelectionModel().selectFirst();
+        if (!cmbGrupo.getItems().isEmpty()) cmbGrupo.getSelectionModel().selectFirst();
     }
 
-    // --- MÉTODOS DE ACCIÓN ---
-
+    // --- ACCIONES DE LOS BOTONES ---
     @FXML
-    private void handleCargarAlumnos() {
-        System.out.println("Cargando lista de alumnos para el grupo seleccionado...");
+    private void clicCargar() {
+        System.out.println("Botón Cargar presionado. Aquí buscaremos en la BD.");
+        // Aquí meteremos la lógica del DAO en el siguiente paso
     }
 
     @FXML
-    private void handleGuardarAsistencia() {
-        System.out.println("Guardando registro de asistencia en la base de datos...");
-    }
-
-    @FXML
-    private void handleLimpiarCampos() {
-        cbGrupo.setValue(null);
-        cbMateria.setValue(null);
-        dpFecha.setValue(null);
-        txtTurno.clear();
-        System.out.println("Formulario de asistencia limpio.");
+    private void clicGuardar() {
+        System.out.println("Botón Guardar presionado. Recorriendo tabla...");
     }
 }

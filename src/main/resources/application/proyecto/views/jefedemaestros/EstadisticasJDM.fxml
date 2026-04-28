@@ -17,7 +17,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefWidth="900.0" prefHeight="700.0"
+<BorderPane fx:controller="application.proyecto.controllers.jefedemaestros.EstadisticasJDMController"
+            prefWidth="900.0" prefHeight="700.0"
             xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml/1"
             style="-fx-background-color: #f4f6fb;">
@@ -71,10 +72,8 @@
             </ImageView>
 
             <Button text="Cerrar Sesion"
-                    style="-fx-background-color: transparent;">
-               <font>
-                  <Font name="Arial Black" size="12.0"/>
-               </font>
+                  onAction="#handleLogout" 
+                  style="-fx-background-color: transparent; -fx-cursor: hand;">
             </Button>
          </HBox>
       </HBox>
@@ -160,6 +159,7 @@
                </HBox>
 
                <!-- metricas -->
+               
                <VBox spacing="12.0"
                      style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
                   <padding>
@@ -171,44 +171,27 @@
 
                   <HBox spacing="16.0">
 
-                     <VBox HBox.hgrow="ALWAYS"
-                           spacing="8.0"
-                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
-                        <padding>
-                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
-                        </padding>
-
-                        <Label text="Total Alumnos"
-                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
-                        <Label text="0"
-                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                  <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding><Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/></padding>
+                        <Label text="Total Alumnos" style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        
+                        <Label fx:id="lblTotalAlumnos" text="0" style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
                      </VBox>
 
-                     <VBox HBox.hgrow="ALWAYS"
-                           spacing="8.0"
-                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
-                        <padding>
-                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
-                        </padding>
-
-                        <Label text="Promedio General"
-                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
-                        <Label text="0"
-                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                     <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding><Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/></padding>
+                        <Label text="Promedio General" style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        
+                        <Label fx:id="lblPromedioGeneral" text="0" style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
                      </VBox>
 
-                     <VBox HBox.hgrow="ALWAYS"
-                           spacing="8.0"
-                           style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
-                        <padding>
-                           <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
-                        </padding>
-
-                        <Label text="Alertas"
-                               style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
-                        <Label text="0"
-                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                     <VBox HBox.hgrow="ALWAYS" spacing="8.0" style="-fx-background-color: #eaf1fb; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                        <padding><Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/></padding>
+                        <Label text="Alertas" style="-fx-font-size: 14px; -fx-text-fill: #6b7280;" />
+                        
+                        <Label fx:id="lblAlertas" text="0" style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
                      </VBox>
+                     
                   </HBox>
                </VBox>
 

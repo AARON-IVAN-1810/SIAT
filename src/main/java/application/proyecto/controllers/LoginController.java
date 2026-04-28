@@ -66,15 +66,16 @@ public class LoginController {
             Parent root = loader.load();
 
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            
             Scene scene = new Scene(root);
-
             stage.setScene(scene);
             stage.setTitle(titulo);
 
-            stage.setMaximized(true);
-            stage.setFullScreen(false);
+            stage.setFullScreen(false); 
+            
+            stage.show(); 
 
-            stage.show();
+            stage.setMaximized(true); 
 
         } catch (IOException e) {
             e.printStackTrace();

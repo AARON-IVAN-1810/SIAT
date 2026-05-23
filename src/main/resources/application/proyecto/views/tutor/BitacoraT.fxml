@@ -4,7 +4,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -13,10 +14,15 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:controller="application.proyecto.controllers.tutores.BitacoraTController" prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #e9edf7;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane fx:controller="application.proyecto.controllers.tutores.BitacoraTController"
+            prefHeight="650.0"
+            prefWidth="900.0"
+            style="-fx-background-color: #e9edf7;"
+            xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1">
 
    <top>
-      <HBox alignment="CENTER_LEFT" prefHeight="50.0" spacing="12.0" style="-fx-background-color: #ffffff;">
+      <HBox alignment="CENTER_LEFT" prefHeight="52.0" spacing="12.0" style="-fx-background-color: #ffffff;">
          <padding>
             <Insets top="8.0" right="14.0" bottom="8.0" left="14.0" />
          </padding>
@@ -28,24 +34,6 @@
          </Label>
 
          <Region HBox.hgrow="ALWAYS" />
-
-         <HBox alignment="CENTER_LEFT" prefHeight="32.0" spacing="6.0" style="-fx-background-color: #eef3fb; -fx-background-radius: 8;">
-            <padding>
-               <Insets left="8.0" right="8.0" />
-            </padding>
-
-            <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
-               <image>
-                  <Image url="@../../fotos/IconoLupa.png" />
-               </image>
-            </ImageView>
-
-            <TextField prefWidth="180.0" promptText="Buscar alumno, grupo..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
-               <font>
-                  <Font size="13.0" />
-               </font>
-            </TextField>
-         </HBox>
 
          <HBox alignment="CENTER_LEFT" spacing="6.0">
             <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
@@ -71,61 +59,114 @@
             <Insets top="16.0" right="16.0" bottom="16.0" left="16.0" />
          </padding>
 
-         <!-- encabezado -->
          <VBox spacing="2.0">
-            <Label text="Bitacora">
+            <Label text="Bitacora del alumno">
                <font>
                   <Font name="Arial Black" size="18.0" />
                </font>
             </Label>
 
-            <Label text="Registro de acciones y seguimiento de casos" textFill="#6f6f6f">
+            <Label text="Consulta alertas, reportes e intervenciones registradas para alumnos de tus grupos tutorados"
+                   textFill="#6f6f6f">
                <font>
                   <Font name="Arial Italic" size="12.0" />
                </font>
             </Label>
          </VBox>
 
-         <!-- bloque de busqueda -->
-         <VBox spacing="14.0" style="-fx-background-color: white; -fx-background-radius: 16;">
+         <VBox spacing="14.0"
+               style="-fx-background-color: white; -fx-background-radius: 16;">
             <padding>
                <Insets top="16.0" right="16.0" bottom="16.0" left="16.0" />
             </padding>
 
-            <Label text="Buscar Alumno">
-               <font>
-                  <Font name="Arial Black" size="14.0" />
-               </font>
-            </Label>
+            <VBox spacing="3.0">
+               <Label text="Buscar seguimiento">
+                  <font>
+                     <Font name="Arial Bold" size="14.0" />
+                  </font>
+               </Label>
+
+               <Label text="Selecciona un grupo y un alumno para visualizar su historial completo"
+                      textFill="#7d7d7d">
+                  <font>
+                     <Font name="Arial Italic" size="12.0" />
+                  </font>
+               </Label>
+            </VBox>
 
             <HBox spacing="12.0">
-               <ComboBox fx:id="cbAlumnoBitacora" prefHeight="38.0" prefWidth="520.0" promptText="Seleccionar alumno..." style="-fx-background-radius: 8; -fx-border-radius: 8;" />
+               <ComboBox fx:id="cbGrupoBitacora"
+                         prefHeight="38.0"
+                         prefWidth="220.0"
+                         promptText="Seleccionar grupo..." />
 
-               <Button fx:id="btnBuscarAlumnoBitacora" mnemonicParsing="false" prefHeight="38.0" prefWidth="120.0" style="-fx-background-color: #7259e8; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand;" text="Buscar">
+               <ComboBox fx:id="cbAlumnoBitacora"
+                         prefHeight="38.0"
+                         prefWidth="360.0"
+                         promptText="Seleccionar alumno..." />
+
+               <Button fx:id="btnBuscarAlumnoBitacora"
+                       mnemonicParsing="false"
+                       onAction="#handleBuscarAlumno"
+                       prefHeight="38.0"
+                       prefWidth="120.0"
+                       style="-fx-background-color: #7259e8; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand;"
+                       text="Buscar">
                   <font>
                      <Font name="Arial Bold" size="12.0" />
                   </font>
                </Button>
+
+               <Region HBox.hgrow="ALWAYS" />
             </HBox>
          </VBox>
 
-         <!-- estado inicial -->
-         <VBox alignment="CENTER" spacing="18.0" style="-fx-background-color: white; -fx-background-radius: 16;" VBox.vgrow="ALWAYS">
+         <VBox spacing="14.0"
+               style="-fx-background-color: white; -fx-background-radius: 16;"
+               VBox.vgrow="ALWAYS">
             <padding>
-               <Insets top="35.0" right="20.0" bottom="35.0" left="20.0" />
+               <Insets top="16.0" right="16.0" bottom="16.0" left="16.0" />
             </padding>
 
-            <ImageView fitHeight="85.0" fitWidth="85.0" preserveRatio="true">
-               <image>
-                  <Image url="@../fotos/IconoBitacoraGrande.png" />
-               </image>
-            </ImageView>
+            <HBox alignment="CENTER_LEFT" spacing="8.0">
+               <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
+                  <image>
+                     <Image url="@../../fotos/IconoBitacora.png" />
+                  </image>
+               </ImageView>
 
-            <Label text="Selecciona un alumno para visualizar su seguimiento" textFill="#6f6f7f">
-               <font>
-                  <Font name="Arial" size="22.0" />
-               </font>
-            </Label>
+               <VBox spacing="2.0">
+                  <Label text="Historial completo del alumno">
+                     <font>
+                        <Font name="Arial Bold" size="14.0" />
+                     </font>
+                  </Label>
+
+                  <Label text="Eventos ordenados por fecha: alertas, reportes e intervenciones"
+                         textFill="#7d7d7d">
+                     <font>
+                        <Font name="Arial Italic" size="12.0" />
+                     </font>
+                  </Label>
+               </VBox>
+            </HBox>
+
+            <Separator />
+
+            <ListView fx:id="listBitacoraAlumno"
+                      prefHeight="360.0"
+                      VBox.vgrow="ALWAYS" />
+
+            <HBox alignment="CENTER">
+               <Label fx:id="lblMensajeBitacora"
+                      text="Selecciona un alumno para visualizar su seguimiento"
+                      textFill="#7f7f8f">
+                  <font>
+                     <Font size="12.0" />
+                  </font>
+               </Label>
+            </HBox>
          </VBox>
       </VBox>
    </center>

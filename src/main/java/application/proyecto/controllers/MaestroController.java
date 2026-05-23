@@ -13,9 +13,7 @@ public class MaestroController {
     private StackPane contentArea;
 
     @FXML
-    private void clickInicio() {
-        cargarVista("/application/proyecto/views/maestro/InicioM.fxml");
-    }
+    private void clickInicio() {cargarVista("/application/proyecto/views/maestro/InicioM.fxml");}
     @FXML
     private void clickAsistencia() {
         cargarVista("/application/proyecto/views/maestro/AsistenciaM.fxml");
@@ -32,15 +30,27 @@ public class MaestroController {
     private void clickReportes() {
         cargarVista("/application/proyecto/views/maestro/ReportesM.fxml");
     }
-
     @FXML
     private void selectPerfil() {
         cargarVista("/application/proyecto/views/maestro/PerfilUsuarioM.fxml");
     }
+    @FXML
+    private void clickHistorial() {
+        cargarVista("/application/proyecto/views/maestro/HistorialAlumnoM.fxml");
+    }
 
 
+    @FXML
+    public void initialize() {
+        contentArea.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.getRoot().getProperties().put("controller", this);
+            }
+        });
+    }
 
-    private void cargarVista(String ruta) {
+
+    public void cargarVista(String ruta) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(ruta));
             Node vista = loader.load();

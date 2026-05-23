@@ -1,48 +1,568 @@
 package application.proyecto.controllers.jefedemaestros;
 
 import application.proyecto.controllers.BaseController;
+import application.proyecto.utils.ConexionBD;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class UsuariosYRolesJDMController extends BaseController {
 
-    // --- FORMULARIO IZQUIERDO ---
-    @FXML private ComboBox<String> cbMaestroUsuario;
+    @FXML private ComboBox<ItemCombo> cbMaestroUsuario;
     @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtContrasena;
+    @FXML private TextField txtNombreMaestro;
+    @FXML private TextField txtNumeroEmpleado;
+
     @FXML private CheckBox chkRolMaestro;
     @FXML private CheckBox chkRolTutor;
-    @FXML private CheckBox chkRolAdministrador;
+    @FXML private CheckBox chkRolJefeMaestros;
 
-    // --- BÚSQUEDA Y FILTRO ---
+    @FXML private Label lblUsuariosActivos;
+    @FXML private Label lblPendientesContrasena;
+    @FXML private Label lblMaestrosTutores;
+
     @FXML private TextField txtBuscarUsuarioInterno;
     @FXML private ComboBox<String> cbFiltroUsuarios;
 
-    // --- TABLA DE USUARIOS ---
-    @FXML private TableView<?> tablaUsuarios;
-    @FXML private TableColumn<?, ?> colIdUsuario;
-    @FXML private TableColumn<?, ?> colUsuario;
-    @FXML private TableColumn<?, ?> colMaestroRelacionado;
-    @FXML private TableColumn<?, ?> colRolesUsuario;
-    @FXML private TableColumn<?, ?> colEstatusUsuario;
-    @FXML private TableColumn<?, ?> colAccionUsuario;
+    @FXML private TableView<UsuarioRolJDM> tablaUsuarios;
+    @FXML private TableColumn<UsuarioRolJDM, String> colMaestroRelacionado;
+    @FXML private TableColumn<UsuarioRolJDM, String> colNumeroEmpleadoUsuario;
+    @FXML private TableColumn<UsuarioRolJDM, String> colRolesUsuario;
+    @FXML private TableColumn<UsuarioRolJDM, String> colAccesoUsuario;
+    @FXML private TableColumn<UsuarioRolJDM, String> colEstatusUsuario;
+
+    private final ObservableList<UsuarioRolJDM> listaUsuarios = FXCollections.observableArrayList();
+
+    private UsuarioRolJDM usuarioSeleccionado;
+    private ItemCombo maestroSeleccionado;
 
     @FXML
     public void initialize() {
-        System.out.println("Vista de Usuarios y Roles cargada correctamente.");
-        // El Logout ya funciona por el BaseController
+        configurarTabla();
+        configurarCombos();
+        configurarEventos();
+        cargarMaestros();
+        cargarUsuarios();
+        cargarResumen();
+        configurarBusqueda();
+    }
+
+    private void configurarTabla() {
+        colMaestroRelacionado.setCellValueFactory(new PropertyValueFactory<>("maestro"));
+        colNumeroEmpleadoUsuario.setCellValueFactory(new PropertyValueFactory<>("numeroEmpleado"));
+        colRolesUsuario.setCellValueFactory(new PropertyValueFactory<>("roles"));
+        colAccesoUsuario.setCellValueFactory(new PropertyValueFactory<>("acceso"));
+        colEstatusUsuario.setCellValueFactory(new PropertyValueFactory<>("estatus"));
+    }
+
+    private void configurarCombos() {
+        cbFiltroUsuarios.setItems(FXCollections.observableArrayList("todos", "activo", "inactivo"));
+        cbFiltroUsuarios.setValue("todos");
+
+        txtUsuario.setEditable(false);
+        txtNombreMaestro.setEditable(false);
+        txtNumeroEmpleado.setEditable(false);
+    }
+
+    private void configurarEventos() {
+        cbMaestroUsuario.valueProperty().addListener((obs, oldValue, newValue) -> {
+            maestroSeleccionado = newValue;
+
+            if (newValue != null) {
+                cargarDatosMaestro(newValue.getId());
+            }
+        });
+
+        tablaUsuarios.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
+            usuarioSeleccionado = newValue;
+
+            if (newValue != null) {
+                seleccionarMaestroPorId(newValue.getIdMaestro());
+            }
+        });
+    }
+
+    private void cargarMaestros() {
+        cbMaestroUsuario.getItems().clear();
+
+        String sql = """
+                select
+                m.id_maestro,
+                concat(m.nombre,' ',m.apellido_paterno,' ',m.apellido_materno) as maestro
+                from maestro m
+                where m.id_estatus_general=1
+                order by m.apellido_paterno,m.apellido_materno,m.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                cbMaestroUsuario.getItems().add(new ItemCombo(
+                        rs.getInt("id_maestro"),
+                        rs.getString("maestro")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar maestros");
+        }
+    }
+
+    private void cargarDatosMaestro(int idMaestro) {
+        limpiarRoles();
+
+        String sql = """
+                select
+                m.id_maestro,
+                m.id_usuario,
+                m.num_empleado,
+                concat(m.nombre,' ',m.apellido_paterno,' ',m.apellido_materno) as maestro,
+                u.usuario
+                from maestro m
+                left join usuario u on m.id_usuario=u.id_usuario
+                where m.id_maestro=?
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idMaestro);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    txtNombreMaestro.setText(rs.getString("maestro"));
+                    txtNumeroEmpleado.setText(rs.getString("num_empleado"));
+
+                    String usuario = rs.getString("usuario");
+                    txtUsuario.setText(usuario == null || usuario.isBlank() ? rs.getString("num_empleado") : usuario);
+
+                    int idUsuario = rs.getInt("id_usuario");
+
+                    if (!rs.wasNull()) {
+                        cargarRolesUsuario(idUsuario);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar datos del maestro");
+        }
+    }
+
+    private void cargarRolesUsuario(int idUsuario) {
+        String sql = """
+                select r.nombre
+                from usuario_rol ur
+                inner join rol r on ur.id_rol=r.id_rol
+                where ur.id_usuario=?
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idUsuario);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String rol = rs.getString("nombre");
+
+                    if (rol.equalsIgnoreCase("maestro")) {
+                        chkRolMaestro.setSelected(true);
+                    }
+
+                    if (rol.equalsIgnoreCase("tutor")) {
+                        chkRolTutor.setSelected(true);
+                    }
+
+                    if (rol.equalsIgnoreCase("jefe de maestros")) {
+                        chkRolJefeMaestros.setSelected(true);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar roles");
+        }
+    }
+
+    private void cargarUsuarios() {
+        listaUsuarios.clear();
+
+        String sql = """
+                select
+                m.id_maestro,
+                m.id_usuario,
+                concat(m.nombre,' ',m.apellido_paterno,' ',m.apellido_materno) as maestro,
+                m.num_empleado,
+                ifnull(u.usuario,m.num_empleado) as usuario,
+                ifnull(group_concat(r.nombre order by r.nombre separator ', '),'sin roles') as roles,
+                case
+                when u.password_hash is null or u.password_hash='' then 'pendiente de contrasena'
+                else 'activo'
+                end as acceso,
+                ceg.nombre as estatus
+                from maestro m
+                left join usuario u on m.id_usuario=u.id_usuario
+                left join usuario_rol ur on u.id_usuario=ur.id_usuario
+                left join rol r on ur.id_rol=r.id_rol
+                inner join cat_estatus_general ceg on m.id_estatus_general=ceg.id_estatus_general
+                group by
+                m.id_maestro,
+                m.id_usuario,
+                m.nombre,
+                m.apellido_paterno,
+                m.apellido_materno,
+                m.num_empleado,
+                u.usuario,
+                u.password_hash,
+                ceg.nombre
+                order by m.apellido_paterno,m.apellido_materno,m.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                listaUsuarios.add(new UsuarioRolJDM(
+                        rs.getInt("id_maestro"),
+                        rs.getInt("id_usuario"),
+                        rs.getString("maestro"),
+                        rs.getString("num_empleado"),
+                        rs.getString("usuario"),
+                        rs.getString("roles"),
+                        rs.getString("acceso"),
+                        rs.getString("estatus")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar usuarios");
+        }
+    }
+
+    private void cargarResumen() {
+        String sql = """
+                select
+                count(case when m.id_usuario is not null and m.id_estatus_general=1 then 1 end) as usuarios_activos,
+                count(case when m.id_usuario is not null and (u.password_hash is null or u.password_hash='') then 1 end) as pendientes,
+                count(distinct case when r.nombre='tutor' and m.id_estatus_general=1 then m.id_maestro end) as tutores
+                from maestro m
+                left join usuario u on m.id_usuario=u.id_usuario
+                left join usuario_rol ur on u.id_usuario=ur.id_usuario
+                left join rol r on ur.id_rol=r.id_rol
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            if (rs.next()) {
+                lblUsuariosActivos.setText(String.valueOf(rs.getInt("usuarios_activos")));
+                lblPendientesContrasena.setText(String.valueOf(rs.getInt("pendientes")));
+                lblMaestrosTutores.setText(String.valueOf(rs.getInt("tutores")));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar resumen");
+        }
     }
 
     @FXML
     private void handleGuardarUsuario() {
-        // Aquí irá tu lógica para insertar en la DB
-        String user = txtUsuario.getText();
-        boolean isMaestro = chkRolMaestro.isSelected();
-        System.out.println("Guardando usuario: " + user + " con rol maestro: " + isMaestro);
+        if (maestroSeleccionado == null) {
+            mostrarError("selecciona un maestro");
+            return;
+        }
+
+        if (!chkRolMaestro.isSelected() && !chkRolTutor.isSelected() && !chkRolJefeMaestros.isSelected()) {
+            mostrarError("selecciona al menos un rol");
+            return;
+        }
+
+        try (Connection con = ConexionBD.conectar()) {
+            con.setAutoCommit(false);
+
+            int idUsuario = obtenerIdUsuarioMaestro(con, maestroSeleccionado.getId());
+
+            if (idUsuario == 0) {
+                mostrarError("este maestro no tiene usuario creado. revisa el registro del maestro");
+                con.rollback();
+                return;
+            }
+
+            actualizarRoles(con, idUsuario);
+
+            con.commit();
+
+            mostrarInfo("roles actualizados correctamente");
+            limpiarFormulario();
+            cargarUsuarios();
+            cargarResumen();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al guardar roles");
+        }
+    }
+
+    private int obtenerIdUsuarioMaestro(Connection con, int idMaestro) throws Exception {
+        String sql = """
+                select id_usuario
+                from maestro
+                where id_maestro=?
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idMaestro);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int idUsuario = rs.getInt("id_usuario");
+
+                    if (!rs.wasNull()) {
+                        return idUsuario;
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private void actualizarRoles(Connection con, int idUsuario) throws Exception {
+        String sqlDelete = "delete from usuario_rol where id_usuario=?";
+
+        try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
+            ps.setInt(1, idUsuario);
+            ps.executeUpdate();
+        }
+
+        if (chkRolMaestro.isSelected()) {
+            insertarRol(con, idUsuario, "maestro");
+        }
+
+        if (chkRolTutor.isSelected()) {
+            insertarRol(con, idUsuario, "tutor");
+        }
+
+        if (chkRolJefeMaestros.isSelected()) {
+            insertarRol(con, idUsuario, "jefe de maestros");
+        }
+    }
+
+    private void insertarRol(Connection con, int idUsuario, String nombreRol) throws Exception {
+        String sql = """
+                insert into usuario_rol(id_usuario,id_rol)
+                select ?,id_rol
+                from rol
+                where nombre=?
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idUsuario);
+            ps.setString(2, nombreRol);
+            ps.executeUpdate();
+        }
+    }
+
+    @FXML
+    private void handleCambiarEstatusUsuario() {
+        if (usuarioSeleccionado == null) {
+            mostrarError("selecciona un usuario de la tabla");
+            return;
+        }
+
+        int nuevoEstatus = usuarioSeleccionado.getEstatus().equalsIgnoreCase("activo") ? 0 : 1;
+
+        String sqlMaestro = "update maestro set id_estatus_general=? where id_maestro=?";
+        String sqlUsuario = "update usuario set id_estatus_general=? where id_usuario=?";
+
+        try (Connection con = ConexionBD.conectar()) {
+            con.setAutoCommit(false);
+
+            try (PreparedStatement ps = con.prepareStatement(sqlMaestro)) {
+                ps.setInt(1, nuevoEstatus);
+                ps.setInt(2, usuarioSeleccionado.getIdMaestro());
+                ps.executeUpdate();
+            }
+
+            if (usuarioSeleccionado.getIdUsuario() > 0) {
+                try (PreparedStatement ps = con.prepareStatement(sqlUsuario)) {
+                    ps.setInt(1, nuevoEstatus);
+                    ps.setInt(2, usuarioSeleccionado.getIdUsuario());
+                    ps.executeUpdate();
+                }
+            }
+
+            con.commit();
+
+            mostrarInfo("estatus actualizado correctamente");
+            limpiarFormulario();
+            cargarUsuarios();
+            cargarResumen();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cambiar estatus");
+        }
+    }
+
+    private void configurarBusqueda() {
+        FilteredList<UsuarioRolJDM> filtro = new FilteredList<>(listaUsuarios, p -> true);
+
+        txtBuscarUsuarioInterno.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro(filtro));
+        cbFiltroUsuarios.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro(filtro));
+
+        tablaUsuarios.setItems(filtro);
+    }
+
+    private void aplicarFiltro(FilteredList<UsuarioRolJDM> filtro) {
+        String texto = txtBuscarUsuarioInterno.getText() == null ? "" : txtBuscarUsuarioInterno.getText().toLowerCase();
+        String estatus = cbFiltroUsuarios.getValue() == null ? "todos" : cbFiltroUsuarios.getValue().toLowerCase();
+
+        filtro.setPredicate(usuario -> {
+            boolean coincideTexto =
+                    usuario.getMaestro().toLowerCase().contains(texto) ||
+                            usuario.getNumeroEmpleado().toLowerCase().contains(texto) ||
+                            usuario.getRoles().toLowerCase().contains(texto) ||
+                            usuario.getAcceso().toLowerCase().contains(texto);
+
+            boolean coincideEstatus =
+                    estatus.equals("todos") ||
+                            usuario.getEstatus().toLowerCase().equals(estatus);
+
+            return coincideTexto && coincideEstatus;
+        });
+    }
+
+    private void seleccionarMaestroPorId(int idMaestro) {
+        for (ItemCombo item : cbMaestroUsuario.getItems()) {
+            if (item.getId() == idMaestro) {
+                cbMaestroUsuario.setValue(item);
+                return;
+            }
+        }
+    }
+
+    private void limpiarFormulario() {
+        cbMaestroUsuario.setValue(null);
+        txtUsuario.clear();
+        txtNombreMaestro.clear();
+        txtNumeroEmpleado.clear();
+        limpiarRoles();
+
+        usuarioSeleccionado = null;
+        maestroSeleccionado = null;
+        tablaUsuarios.getSelectionModel().clearSelection();
+    }
+
+    private void limpiarRoles() {
+        chkRolMaestro.setSelected(false);
+        chkRolTutor.setSelected(false);
+        chkRolJefeMaestros.setSelected(false);
+    }
+
+    private void mostrarError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    private void mostrarInfo(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("informacion");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    public static class ItemCombo {
+        private final int id;
+        private final String nombre;
+
+        public ItemCombo(int id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        @Override
+        public String toString() {
+            return nombre;
+        }
+    }
+
+    public static class UsuarioRolJDM {
+        private final int idMaestro;
+        private final int idUsuario;
+        private final String maestro;
+        private final String numeroEmpleado;
+        private final String usuario;
+        private final String roles;
+        private final String acceso;
+        private final String estatus;
+
+        public UsuarioRolJDM(int idMaestro, int idUsuario, String maestro, String numeroEmpleado, String usuario, String roles, String acceso, String estatus) {
+            this.idMaestro = idMaestro;
+            this.idUsuario = idUsuario;
+            this.maestro = maestro;
+            this.numeroEmpleado = numeroEmpleado;
+            this.usuario = usuario;
+            this.roles = roles;
+            this.acceso = acceso;
+            this.estatus = estatus;
+        }
+
+        public int getIdMaestro() {
+            return idMaestro;
+        }
+
+        public int getIdUsuario() {
+            return idUsuario;
+        }
+
+        public String getMaestro() {
+            return maestro;
+        }
+
+        public String getNumeroEmpleado() {
+            return numeroEmpleado;
+        }
+
+        public String getUsuario() {
+            return usuario;
+        }
+
+        public String getRoles() {
+            return roles;
+        }
+
+        public String getAcceso() {
+            return acceso;
+        }
+
+        public String getEstatus() {
+            return estatus;
+        }
     }
 }

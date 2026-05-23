@@ -97,6 +97,16 @@
                </graphic>
             </ToggleButton>
 
+            <ToggleButton fx:id="btnHistorialAlumnos" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectHistorialAlumnos" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Historial de Alumnos" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="41.0" fitWidth="56.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoHistorialAlumno.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </ToggleButton>
+
             <ToggleButton fx:id="btnestadisticas" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectestadisticas" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Estadisticas" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="38.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true">

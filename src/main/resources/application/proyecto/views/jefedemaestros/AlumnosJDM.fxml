@@ -15,13 +15,12 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:controller="application.proyecto.controllers.jefedemaestros.AlumnosJDMController" 
+<BorderPane fx:controller="application.proyecto.controllers.jefedemaestros.AlumnosJDMController"
             prefWidth="900.0" prefHeight="650.0"
             xmlns="http://javafx.com/javafx/23.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             style="-fx-background-color: #f4f6fb;">
 
-   <!-- barra superior -->
    <top>
       <HBox alignment="CENTER_LEFT"
             spacing="12.0"
@@ -39,28 +38,6 @@
 
          <Region HBox.hgrow="ALWAYS"/>
 
-         <HBox alignment="CENTER_LEFT"
-               spacing="6.0"
-               style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;"
-               prefHeight="32.0">
-            <padding>
-               <Insets left="8.0" right="8.0"/>
-            </padding>
-
-            <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
-               <image>
-                  <Image url="@../../fotos/IconoLupa.png" />
-               </image>
-            </ImageView>
-
-            <TextField promptText="Buscar nombre, no. de control..."
-                       prefWidth="200.0"
-                       style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
-               <font>
-                  <Font size="13.0"/>
-               </font>
-            </TextField>
-         </HBox>
 
          <HBox alignment="CENTER_LEFT" spacing="6.0">
             <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
@@ -69,38 +46,36 @@
                </image>
             </ImageView>
 
-
-         <Button text="Cerrar Sesion"
-                  onAction="#handleLogout" 
-                  style="-fx-background-color: transparent; -fx-cursor: hand;">
-            <font>
+            <Button text="Cerrar Sesion"
+                    onAction="#handleLogout"
+                    style="-fx-background-color: transparent; -fx-cursor: hand;">
+               <font>
                   <Font name="Arial Black" size="12.0"/>
-            </font>
-         </Button>
+               </font>
+            </Button>
          </HBox>
       </HBox>
+
+
+
    </top>
 
-   <!-- contenido -->
    <center>
       <VBox spacing="18.0" style="-fx-background-color: #f4f6fb;">
          <padding>
             <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
          </padding>
 
-         <!-- titulo -->
          <VBox spacing="4.0">
             <Label text="Alumnos"
                    style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
-            <Label text="Gestion de estudiantes"
+            <Label text="Gestion de estudiantes por grupo"
                    style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
          </VBox>
 
-         <!-- contenido principal -->
          <HBox spacing="20.0" VBox.vgrow="ALWAYS">
 
-            <!-- panel izquierdo -->
-            <VBox prefWidth="290.0"
+            <VBox prefWidth="300.0"
                   spacing="12.0"
                   style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
                <padding>
@@ -111,33 +86,53 @@
                       style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
 
                <TextField fx:id="txtNombreAlumno"
-                          promptText="Nombre Completo"
+                          promptText="Nombre"
+                          prefHeight="38.0"
+                          style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
+
+               <TextField fx:id="txtApellidoPaternoAlumno"
+                          promptText="Apellido paterno"
+                          prefHeight="38.0"
+                          style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
+
+               <TextField fx:id="txtApellidoMaternoAlumno"
+                          promptText="Apellido materno"
                           prefHeight="38.0"
                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
 
                <TextField fx:id="txtNumeroControlAlumno"
-                          promptText="No. de Control"
+                          promptText="No. de control"
                           prefHeight="38.0"
                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
 
                <ComboBox fx:id="cbGrupoAlumno"
                          prefHeight="38.0"
+                         maxWidth="1.7976931348623157E308"
                          promptText="Seleccionar grupo..."
                          style="-fx-background-radius: 8; -fx-border-radius: 8;" />
 
+               <ComboBox fx:id="cbSexoAlumno"
+                         prefHeight="38.0"
+                         maxWidth="1.7976931348623157E308"
+                         promptText="Sexo"
+                         style="-fx-background-radius: 8; -fx-border-radius: 8;" />
+
                <Button text="Guardar"
+                       onAction="#handleGuardarAlumno"
                        prefHeight="40.0"
                        maxWidth="1.7976931348623157E308"
                        style="-fx-background-color: #1d5bd6; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
 
                <HBox spacing="8.0">
                   <Button text="Editar"
+                          onAction="#handleEditarAlumno"
                           HBox.hgrow="ALWAYS"
                           maxWidth="1.7976931348623157E308"
                           prefHeight="38.0"
                           style="-fx-background-color: linear-gradient(to right, #6f7bc7, #5f6ebb); -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;" />
 
                   <Button text="Activar/Desactivar"
+                          onAction="#handleCambiarEstatusAlumno"
                           HBox.hgrow="ALWAYS"
                           maxWidth="1.7976931348623157E308"
                           prefHeight="38.0"
@@ -147,7 +142,6 @@
                <Region VBox.vgrow="ALWAYS"/>
             </VBox>
 
-            <!-- panel derecho -->
             <VBox spacing="10.0"
                   HBox.hgrow="ALWAYS"
                   style="-fx-background-color: transparent;">
@@ -162,7 +156,6 @@
                      <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
                   </padding>
 
-                  <!-- barra superior -->
                   <HBox spacing="10.0" alignment="CENTER_LEFT">
                      <HBox alignment="CENTER_LEFT"
                            spacing="8.0"
@@ -179,7 +172,7 @@
                         </ImageView>
 
                         <TextField fx:id="txtBuscarAlumnoInterno"
-                                   promptText="Buscar alumno, control o grupo..."
+                                   promptText="Buscar alumno, control, grupo o sexo..."
                                    style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
                                    HBox.hgrow="ALWAYS"/>
                      </HBox>
@@ -190,17 +183,15 @@
                                promptText="Todos" />
                   </HBox>
 
-                  <!-- tabla unica -->
                   <TableView fx:id="tablaAlumnos"
                              VBox.vgrow="ALWAYS"
                              prefHeight="420.0">
                      <columns>
-                        <TableColumn fx:id="colIdAlumno" text="ID" prefWidth="70.0" />
-                        <TableColumn fx:id="colNombreAlumno" text="Nombre" prefWidth="190.0" />
-                        <TableColumn fx:id="colNumeroControlAlumno" text="No. de Control" prefWidth="170.0" />
-                        <TableColumn fx:id="colGrupoAlumno" text="Grupo" prefWidth="130.0" />
-                        <TableColumn fx:id="colEstatusAlumno" text="Estatus" prefWidth="120.0" />
-                        <TableColumn fx:id="colAccionAlumno" text="Accion" prefWidth="140.0" />
+                        <TableColumn fx:id="colNombreAlumno" text="Nombre" prefWidth="210.0" />
+                        <TableColumn fx:id="colNumeroControlAlumno" text="No. control" prefWidth="130.0" />
+                        <TableColumn fx:id="colGrupoAlumno" text="Grupo" prefWidth="180.0" />
+                        <TableColumn fx:id="colSexoAlumno" text="Sexo" prefWidth="100.0" />
+                        <TableColumn fx:id="colEstatusAlumno" text="Estatus" prefWidth="100.0" />
                      </columns>
                      <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

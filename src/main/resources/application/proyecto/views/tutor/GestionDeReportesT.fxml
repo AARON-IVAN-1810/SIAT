@@ -16,7 +16,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:controller="application.proyecto.controllers.tutores.GestionDeAlertasTController"
+<BorderPane fx:controller="application.proyecto.controllers.tutores.GestionDeReportesTController"
             prefHeight="650.0"
             prefWidth="1100.0"
             style="-fx-background-color: #e9edf7;"
@@ -29,7 +29,7 @@
                 <Insets top="8.0" right="14.0" bottom="8.0" left="14.0" />
             </padding>
 
-            <Label text="Gestion de Alertas">
+            <Label text="Gestion de Reportes">
                 <font>
                     <Font name="Arial Black" size="15.0" />
                 </font>
@@ -58,14 +58,15 @@
     <center>
         <VBox spacing="16.0" style="-fx-background-color: #e9edf7;">
             <padding>
-                <Insets top="18.0" right="18.0" bottom="18.0" left="18.0" />
+                <Insets top="16.0" right="0.0" bottom="16.0" left="16.0" />
             </padding>
 
 
+
             <VBox spacing="4.0">
-                <Label text="Gestion de Alertas"
+                <Label text="Gestion de Reportes"
                        style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
-                <Label text="Consulta y seguimiento de alertas generadas en los grupos tutorados"
+                <Label text="Consulta y seguimiento de reportes generados en los grupos tutorados"
                        style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
             </VBox>
 
@@ -78,13 +79,13 @@
                 </padding>
 
                 <VBox spacing="3.0">
-                    <Label text="Alertas de grupos tutorados">
+                    <Label text="Reportes de grupos tutorados">
                         <font>
                             <Font name="Arial Bold" size="14.0" />
                         </font>
                     </Label>
 
-                    <Label text="Selecciona una alerta para ver la informacion completa del alumno"
+                    <Label text="Selecciona un reporte para ver la informacion completa del alumno"
                            textFill="#7d7d7d">
                         <font>
                             <Font name="Arial Italic" size="12.0" />
@@ -101,7 +102,7 @@
                     <ComboBox fx:id="cmbTipoFiltro"
                               prefHeight="36.0"
                               prefWidth="150.0"
-                              promptText="Tipo de alerta" />
+                              promptText="Tipo de reporte" />
 
                     <ComboBox fx:id="cmbEstatusFiltro"
                               prefHeight="36.0"
@@ -123,7 +124,7 @@
                         </ImageView>
 
                         <TextField fx:id="txtBuscarTabla"
-                                   promptText="Buscar por alumno, no. control, materia, prioridad o fecha..."
+                                   promptText="Buscar por alumno, no. control, materia, maestro o fecha..."
                                    style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
                                    HBox.hgrow="ALWAYS">
                             <font>
@@ -133,15 +134,15 @@
                     </HBox>
                 </HBox>
 
-                <TableView fx:id="tablaGestionAlertasTutor"
+                <TableView fx:id="tablaGestionReportesTutor"
                            prefHeight="430.0"
                            VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="colAlumno" prefWidth="210.0" text="Alumno" />
                         <TableColumn fx:id="colGrupo" prefWidth="90.0" text="Grupo" />
                         <TableColumn fx:id="colMateria" prefWidth="150.0" text="Materia" />
-                        <TableColumn fx:id="colTipoAlerta" prefWidth="130.0" text="Tipo de alerta" />
-                        <TableColumn fx:id="colPrioridad" prefWidth="100.0" text="Prioridad" />
+                        <TableColumn fx:id="colTipoReporte" prefWidth="130.0" text="Tipo de reporte" />
+                        <TableColumn fx:id="colMaestro" prefWidth="160.0" text="Maestro" />
                         <TableColumn fx:id="colEstatus" prefWidth="110.0" text="Estatus" />
                     </columns>
                     <columnResizePolicy>
@@ -166,13 +167,13 @@
                 </ImageView>
 
                 <VBox spacing="2.0">
-                    <Label fx:id="lblNombreAlumno" text="Selecciona una alerta" textFill="#8a8a99">
+                    <Label fx:id="lblNombreAlumno" text="Selecciona un reporte" textFill="#8a8a99">
                         <font>
                             <Font name="Arial Black" size="17.0" />
                         </font>
                     </Label>
 
-                    <Label text="Detalle del alumno y la alerta" textFill="#a0a0ad">
+                    <Label text="Detalle del alumno y el reporte" textFill="#a0a0ad">
                         <font>
                             <Font size="11.0" />
                         </font>
@@ -217,31 +218,31 @@
                     </Label>
                     <Label fx:id="lblMateria" text="---" textFill="#9b9baa" />
                 </HBox>
+
+                <HBox spacing="6.0">
+                    <Label text="Maestro:" textFill="#5d5d5d">
+                        <font><Font name="Arial Bold" size="12.0" /></font>
+                    </Label>
+                    <Label fx:id="lblMaestro" text="---" textFill="#9b9baa" wrapText="true" />
+                </HBox>
             </VBox>
 
             <Separator />
 
             <VBox spacing="12.0">
                 <HBox spacing="6.0">
-                    <Label text="Tipo de alerta:" textFill="#5d5d5d">
+                    <Label text="Tipo de reporte:" textFill="#5d5d5d">
                         <font><Font name="Arial Bold" size="12.0" /></font>
                     </Label>
-                    <Label fx:id="lblTipoAlerta" text="Sin seleccionar" textFill="#9b9baa" />
-                </HBox>
-
-                <HBox spacing="6.0">
-                    <Label text="Prioridad:" textFill="#5d5d5d">
-                        <font><Font name="Arial Bold" size="12.0" /></font>
-                    </Label>
-                    <Label fx:id="lblPrioridadDetalle" text="Sin seleccionar" textFill="#9b9baa" />
+                    <Label fx:id="lblTipoReporte" text="Sin seleccionar" textFill="#9b9baa" />
                 </HBox>
 
                 <VBox spacing="4.0">
-                    <Label text="Motivo detallado:" textFill="#5d5d5d">
+                    <Label text="Descripcion:" textFill="#5d5d5d">
                         <font><Font name="Arial Bold" size="12.0" /></font>
                     </Label>
-                    <Label fx:id="lblMotivoDetalle"
-                           text="Selecciona una alerta para mostrar el motivo detallado."
+                    <Label fx:id="lblDescripcion"
+                           text="Selecciona un reporte para mostrar la descripcion."
                            textFill="#9b9baa"
                            wrapText="true" />
                 </VBox>
@@ -264,30 +265,12 @@
             <Separator />
 
             <VBox spacing="10.0">
-                <Button fx:id="btnCambiarEstatus"
-                        onAction="#handleCambiarEstatus"
-                        prefHeight="40.0"
-                        maxWidth="1.7976931348623157E308"
-                        style="-fx-background-color: white; -fx-border-color: #c9c7e8; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #525266; -fx-cursor: hand;"
-                        text="Cambiar estatus">
-                    <font><Font name="Arial Bold" size="12.0" /></font>
-                </Button>
-
-                <Button fx:id="btnRegistrarOrientacion"
-                        onAction="#handleRegistrarOrientacion"
+                <Button fx:id="btnDarSeguimiento"
+                        onAction="#handleDarSeguimiento"
                         prefHeight="40.0"
                         maxWidth="1.7976931348623157E308"
                         style="-fx-background-color: #7259e8; -fx-background-radius: 8; -fx-text-fill: white; -fx-cursor: hand;"
                         text="Dar seguimiento">
-                    <font><Font name="Arial Bold" size="13.0" /></font>
-                </Button>
-
-                <Button fx:id="btnCerrarAlerta"
-                        onAction="#handleCerrarAlerta"
-                        prefHeight="40.0"
-                        maxWidth="1.7976931348623157E308"
-                        style="-fx-background-color: white; -fx-border-color: #efc3c3; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #d85b5b; -fx-cursor: hand;"
-                        text="Cerrar alerta">
                     <font><Font name="Arial Bold" size="13.0" /></font>
                 </Button>
             </VBox>

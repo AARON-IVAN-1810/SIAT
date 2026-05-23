@@ -32,23 +32,6 @@
 
             <Region HBox.hgrow="ALWAYS" />
 
-            <HBox alignment="CENTER_LEFT" prefHeight="32.0" spacing="6.0" style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;">
-                <padding>
-                    <Insets left="8.0" right="8.0" />
-                </padding>
-
-                <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
-                    <image>
-                        <Image url="@../../fotos/IconoLupa.png" />
-                    </image>
-                </ImageView>
-
-                <TextField fx:id="txtBuscar" prefWidth="180.0" promptText="Buscar alumno, grupo..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
-                    <font>
-                        <Font size="13.0" />
-                    </font>
-                </TextField>
-            </HBox>
 
             <HBox alignment="CENTER_LEFT" spacing="6.0">
                 <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
@@ -145,6 +128,31 @@
 
                     <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #111827;" text="Alumnos:" />
                     <Label fx:id="lblTotalAlumnos" style="-fx-font-size: 14px; -fx-text-fill: #2563eb;" text="0" />
+
+                    <HBox alignment="CENTER_LEFT"
+                          spacing="8.0"
+                          style="-fx-background-color: white; -fx-border-color: #d9dce5; -fx-border-radius: 8; -fx-background-radius: 8;"
+                          HBox.hgrow="ALWAYS">
+                        <padding>
+                            <Insets top="0.0" right="10.0" bottom="0.0" left="10.0" />
+                        </padding>
+
+                        <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../../fotos/IconoLupa.png" />
+                            </image>
+                        </ImageView>
+
+                        <TextField fx:id="txtBuscar"
+                                   promptText="Buscar "
+                                   style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
+                                   HBox.hgrow="ALWAYS">
+                            <font>
+                                <Font size="13.0" />
+                            </font>
+                        </TextField>
+                    </HBox>
+
                 </HBox>
 
                 <VBox spacing="10.0" style="-fx-background-color: #eef4fb; -fx-background-radius: 14; -fx-border-radius: 14;">
@@ -158,7 +166,7 @@
                             <TableColumn fx:id="colNombreAlumno" prefWidth="260.0" text="Nombre del Alumno" />
                             <TableColumn fx:id="colGrupo" prefWidth="120.0" text="Grupo" />
                             <TableColumn fx:id="colTurno" prefWidth="120.0" text="Turno" />
-                            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Estado" />
+                            <TableColumn fx:id="colEstado" prefWidth="150.0" text="Asistencia" />
                         </columns>
                         <columnResizePolicy>
                             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.Separator?>
@@ -14,132 +15,208 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="650.0" prefWidth="900.0" style="-fx-background-color: #e5e8f2;" stylesheets="@../../styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane fx:controller="application.proyecto.controllers.maestros.PerfilUsuarioMController"
+            prefHeight="650.0"
+            prefWidth="900.0"
+            style="-fx-background-color: #f4f6fb;"
+            xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1">
 
-    <!-- TOP -->
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="12.0" style="-fx-background-color: #ffffff;">
+        <HBox alignment="CENTER_LEFT" spacing="12.0" prefHeight="50.0" style="-fx-background-color: #ffffff;">
             <padding>
-                <Insets bottom="8" left="14" right="14" top="8" />
+                <Insets top="8.0" right="14.0" bottom="8.0" left="14.0"/>
             </padding>
 
             <Label text="Mi Perfil">
                 <font>
-                    <Font name="Arial Black" size="15" />
+                    <Font name="Arial Black" size="17.0"/>
                 </font>
             </Label>
 
-            <Region HBox.hgrow="ALWAYS" />
-            <ImageView fitHeight="28.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
-                <image>
-                    <Image url="@../../fotos/IconoSalir.png" />
-                </image>
-            </ImageView>
+            <Region HBox.hgrow="ALWAYS"/>
 
-            <Button prefHeight="26.0" prefWidth="100.0" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Cerrar Sesion" />
+            <HBox alignment="CENTER_LEFT" spacing="6.0">
+                <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
+                    <image>
+                        <Image url="@../../fotos/IconoSalir.png"/>
+                    </image>
+                </ImageView>
+
+                <Button text="Cerrar Sesion"
+                        onAction="#handleLogout"
+                        style="-fx-background-color: transparent; -fx-cursor: hand;">
+                    <font>
+                        <Font name="Arial Black" size="12.0"/>
+                    </font>
+                </Button>
+            </HBox>
         </HBox>
     </top>
 
-    <!-- CENTER -->
     <center>
-        <VBox spacing="15">
+        <VBox spacing="18.0" style="-fx-background-color: #f4f6fb;">
             <padding>
-                <Insets bottom="15" left="15" right="15" top="15" />
+                <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
             </padding>
 
-            <!-- encabezado -->
-            <VBox spacing="3">
-                <Label text="Configuracion de Usuario">
-                    <font>
-                        <Font name="Arial Black" size="18" />
-                    </font>
-                </Label>
-
-                <Label style="-fx-text-fill: #7a7a7a;" text="Administra tu informacion personal y credenciales">
-                    <font>
-                        <Font size="12" />
-                    </font>
-                </Label>
+            <VBox spacing="4.0">
+                <Label text="Configuracion de usuario"
+                       style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                <Label text="Administra tu informacion personal, contrasena y recuperacion de cuenta"
+                       style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
             </VBox>
 
-            <!-- CARD -->
-            <VBox spacing="20" style="-fx-background-color: white; -fx-background-radius: 15;" VBox.vgrow="ALWAYS">
+            <HBox spacing="20.0" VBox.vgrow="ALWAYS">
 
-                <padding>
-                    <Insets bottom="20" left="20" right="20" top="20" />
-                </padding>
+                <VBox prefWidth="310.0"
+                      spacing="14.0"
+                      style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                    <padding>
+                        <Insets top="18.0" right="16.0" bottom="16.0" left="16.0"/>
+                    </padding>
 
-                <!-- DATOS -->
-                <VBox spacing="10">
-                    <Label text="Datos personales">
-                        <font>
-                            <Font name="Arial Black" size="15" />
-                        </font>
-                    </Label>
+                    <Label text="Datos del perfil"
+                           style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
 
-                    <HBox spacing="15">
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Nombre completo" />
-                            <TextField fx:id="txtNombre" />
-                        </VBox>
+                    <TextField fx:id="txtNombre"
+                               promptText="Nombre"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
 
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Numero de empleado" />
-                            <TextField fx:id="txtNumEmpleado" editable="false" style="-fx-background-color: #f0f0f0;" />
-                        </VBox>
-                    </HBox>
+                    <TextField fx:id="txtApellidoPaterno"
+                               promptText="Apellido paterno"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
 
-                    <HBox spacing="15">
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Correo institucional" />
-                            <TextField fx:id="txtCorreo" />
-                        </VBox>
+                    <TextField fx:id="txtApellidoMaterno"
+                               promptText="Apellido materno"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
 
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Telefono" />
-                            <TextField fx:id="txtTelefono" />
-                        </VBox>
-                    </HBox>
+                    <TextField fx:id="txtNumEmpleado"
+                               promptText="Numero de empleado"
+                               editable="false"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #e5e7eb; -fx-background-radius: 8; -fx-border-radius: 8;" />
+
+                    <TextField fx:id="txtCorreo"
+                               promptText="Correo institucional"
+                               editable="false"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #e5e7eb; -fx-background-radius: 8; -fx-border-radius: 8;" />
+
+                    <TextField fx:id="txtTelefono"
+                               promptText="Telefono"
+                               prefHeight="38.0"
+                               style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;" />
+
+                    <Button text="Guardar datos personales"
+                            fx:id="btnGuardarDatos"
+                            onAction="#handleGuardarDatos"
+                            prefHeight="40.0"
+                            maxWidth="1.7976931348623157E308"
+                            style="-fx-background-color: #1d5bd6; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
+
+                    <Region VBox.vgrow="ALWAYS"/>
                 </VBox>
 
-                <Separator />
+                <VBox spacing="14.0"
+                      HBox.hgrow="ALWAYS"
+                      style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                    <padding>
+                        <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                    </padding>
 
-                <!-- PASSWORD -->
-                <VBox spacing="10">
-                    <Label text="Cambiar contraseña">
-                        <font>
-                            <Font name="Arial Black" size="15" />
-                        </font>
-                    </Label>
-
-                    <HBox spacing="15">
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Contraseña actual" />
-                            <PasswordField fx:id="txtActual" />
-                        </VBox>
-
-                        <VBox spacing="5" HBox.hgrow="ALWAYS">
-                            <Label text="Nueva contraseña" />
-                            <PasswordField fx:id="txtNueva" />
-                        </VBox>
-                    </HBox>
-
-                    <VBox maxWidth="300" spacing="5">
-                        <Label text="Confirmar contraseña" />
-                        <PasswordField fx:id="txtConfirmar" />
+                    <VBox spacing="4.0">
+                        <Label text="Seguridad de la cuenta"
+                               style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+                        <Label text="Actualiza tu contrasena y configura dos preguntas para recuperar el acceso"
+                               style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
                     </VBox>
+
+                    <Separator/>
+
+                    <VBox spacing="12.0">
+                        <Label text="Cambiar contrasena"
+                               style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                        <HBox spacing="12.0">
+                            <PasswordField fx:id="txtActual"
+                                           promptText="Contrasena actual"
+                                           prefHeight="38.0"
+                                           HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8;" />
+
+                            <PasswordField fx:id="txtNueva"
+                                           promptText="Nueva contrasena"
+                                           prefHeight="38.0"
+                                           HBox.hgrow="ALWAYS"
+                                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8;" />
+                        </HBox>
+
+                        <PasswordField fx:id="txtConfirmar"
+                                       promptText="Confirmar nueva contrasena"
+                                       prefHeight="38.0"
+                                       maxWidth="1.7976931348623157E308"
+                                       style="-fx-background-color: #eef3fb; -fx-background-radius: 8;" />
+
+                        <Button text="Actualizar contrasena"
+                                fx:id="btnCambiarContrasena"
+                                onAction="#handleCambiarContrasena"
+                                prefHeight="40.0"
+                                maxWidth="1.7976931348623157E308"
+                                style="-fx-background-color: #6574c4; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    </VBox>
+
+                    <Separator/>
+
+                    <VBox spacing="12.0">
+                        <Label text="Preguntas de recuperacion"
+                               style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+
+                        <HBox spacing="12.0">
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                <ComboBox fx:id="cbPregunta1"
+                                          promptText="Pregunta 1"
+                                          prefHeight="38.0"
+                                          maxWidth="1.7976931348623157E308" />
+
+                                <TextField fx:id="txtRespuesta1"
+                                           promptText="Respuesta 1"
+                                           prefHeight="38.0"
+                                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8;" />
+                            </VBox>
+
+                            <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                <ComboBox fx:id="cbPregunta2"
+                                          promptText="Pregunta 2"
+                                          prefHeight="38.0"
+                                          maxWidth="1.7976931348623157E308" />
+
+                                <TextField fx:id="txtRespuesta2"
+                                           promptText="Respuesta 2"
+                                           prefHeight="38.0"
+                                           style="-fx-background-color: #eef3fb; -fx-background-radius: 8;" />
+                            </VBox>
+                        </HBox>
+
+                        <Label text="Debes configurar dos preguntas diferentes para recuperar tu cuenta."
+                               wrapText="true"
+                               style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
+
+                        <Button text="Guardar preguntas"
+                                fx:id="btnGuardarPreguntas"
+                                onAction="#handleGuardarPreguntas"
+                                prefHeight="40.0"
+                                maxWidth="1.7976931348623157E308"
+                                style="-fx-background-color: #6956cc; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    </VBox>
+
+                    <Region VBox.vgrow="ALWAYS"/>
                 </VBox>
 
-                <Region VBox.vgrow="ALWAYS" />
-
-                <!-- BOTONES -->
-                <HBox alignment="CENTER_RIGHT" spacing="10">
-                    <Button style="-fx-background-color: #d1d5db; -fx-background-radius: 10; -fx-cursor: hand;" text="Cancelar" />
-
-                    <Button prefWidth="180" style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;" text="Guardar cambios" />
-                </HBox>
-
-            </VBox>
+            </HBox>
         </VBox>
     </center>
 </BorderPane>

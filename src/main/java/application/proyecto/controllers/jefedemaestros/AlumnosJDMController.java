@@ -1,45 +1,435 @@
 package application.proyecto.controllers.jefedemaestros;
 
-import javafx.event.ActionEvent;
+import application.proyecto.controllers.BaseController;
+import application.proyecto.utils.ConexionBD;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.stage.Stage;
-import java.io.IOException;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 
-public class AlumnosJDMController {
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
-    // Estas líneas son las que faltaban para que la vista NO TRUENE al abrir
-    @FXML private TextField txtNombreAlumno, txtNumeroControlAlumno, txtBuscarAlumnoInterno;
-    @FXML private ComboBox<String> cbGrupoAlumno, cbFiltroAlumnos;
-    @FXML private TableView<?> tablaAlumnos; // El ? es porque aún no definimos el modelo
-    @FXML private TableColumn<?, ?> colIdAlumno, colNombreAlumno, colNumeroControlAlumno, colGrupoAlumno, colEstatusAlumno, colAccionAlumno;
+public class AlumnosJDMController extends BaseController {
+
+    @FXML private TextField txtNombreAlumno;
+    @FXML private TextField txtApellidoPaternoAlumno;
+    @FXML private TextField txtApellidoMaternoAlumno;
+    @FXML private TextField txtNumeroControlAlumno;
+    @FXML private TextField txtBuscarAlumnoInterno;
+
+    @FXML private ComboBox<ItemCombo> cbGrupoAlumno;
+    @FXML private ComboBox<ItemCombo> cbSexoAlumno;
+    @FXML private ComboBox<String> cbFiltroAlumnos;
+
+    @FXML private TableView<AlumnoJDM> tablaAlumnos;
+    @FXML private TableColumn<AlumnoJDM, String> colNombreAlumno;
+    @FXML private TableColumn<AlumnoJDM, String> colNumeroControlAlumno;
+    @FXML private TableColumn<AlumnoJDM, String> colGrupoAlumno;
+    @FXML private TableColumn<AlumnoJDM, String> colSexoAlumno;
+    @FXML private TableColumn<AlumnoJDM, String> colEstatusAlumno;
+
+    private final ObservableList<AlumnoJDM> listaAlumnos = FXCollections.observableArrayList();
+    private AlumnoJDM alumnoSeleccionado;
+    private boolean modoEdicion = false;
 
     @FXML
-    private void handleLogout(ActionEvent event) {
-        try {
-            System.out.println("Saliendo al login desde Alumnos...");
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/application/proyecto/views/Login.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
-            stage.centerOnScreen();
-            stage.show();
-        } catch (IOException e) {
+    public void initialize() {
+        configurarTabla();
+        configurarCombos();
+        configurarEventos();
+        cargarGrupos();
+        cargarSexos();
+        cargarAlumnos();
+        configurarBusqueda();
+    }
+
+    private void configurarTabla() {
+        colNombreAlumno.setCellValueFactory(new PropertyValueFactory<>("nombreCompleto"));
+        colNumeroControlAlumno.setCellValueFactory(new PropertyValueFactory<>("numeroControl"));
+        colGrupoAlumno.setCellValueFactory(new PropertyValueFactory<>("grupo"));
+        colSexoAlumno.setCellValueFactory(new PropertyValueFactory<>("sexo"));
+        colEstatusAlumno.setCellValueFactory(new PropertyValueFactory<>("estatus"));
+    }
+
+    private void configurarCombos() {
+        cbFiltroAlumnos.setItems(FXCollections.observableArrayList("todos", "activo", "inactivo"));
+        cbFiltroAlumnos.setValue("todos");
+    }
+
+    private void configurarEventos() {
+        tablaAlumnos.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
+            alumnoSeleccionado = newValue;
+        });
+    }
+
+    private void cargarGrupos() {
+        cbGrupoAlumno.getItems().clear();
+
+        String sql = """
+                select
+                gc.id_grupo_ciclo,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
+                from grupo_ciclo gc
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                where gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                order by ce.nombre desc,g.semestre,g.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                cbGrupoAlumno.getItems().add(new ItemCombo(
+                        rs.getInt("id_grupo_ciclo"),
+                        rs.getString("grupo")
+                ));
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
+            mostrarError("error al cargar grupos");
+        }
+    }
+
+    private void cargarSexos() {
+        cbSexoAlumno.getItems().clear();
+
+        String sql = "select id_sexo,nombre from cat_sexo order by id_sexo";
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                cbSexoAlumno.getItems().add(new ItemCombo(
+                        rs.getInt("id_sexo"),
+                        rs.getString("nombre")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar sexo");
+        }
+    }
+
+    private void cargarAlumnos() {
+        listaAlumnos.clear();
+
+        String sql = """
+                select
+                a.id_alumno,
+                a.nombre,
+                a.apellido_paterno,
+                a.apellido_materno,
+                a.num_control,
+                a.id_grupo_ciclo,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                a.id_sexo,
+                cs.nombre as sexo,
+                ceg.nombre as estatus
+                from alumno a
+                inner join grupo_ciclo gc on a.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join cat_sexo cs on a.id_sexo=cs.id_sexo
+                inner join cat_estatus_general ceg on a.id_estatus_general=ceg.id_estatus_general
+                order by g.nombre,a.apellido_paterno,a.apellido_materno,a.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                listaAlumnos.add(new AlumnoJDM(
+                        rs.getInt("id_alumno"),
+                        rs.getString("nombre"),
+                        rs.getString("apellido_paterno"),
+                        rs.getString("apellido_materno"),
+                        rs.getString("num_control"),
+                        rs.getInt("id_grupo_ciclo"),
+                        rs.getString("grupo"),
+                        rs.getInt("id_sexo"),
+                        rs.getString("sexo"),
+                        rs.getString("estatus")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar alumnos");
         }
     }
 
     @FXML
-    public void initialize() {
-        System.out.println("Vista de Alumnos cargada correctamente.");
-        // Aquí es donde después programarás que se llene la tabla
+    private void handleGuardarAlumno() {
+        String nombre = txtNombreAlumno.getText() == null ? "" : txtNombreAlumno.getText().trim();
+        String apellidoPaterno = txtApellidoPaternoAlumno.getText() == null ? "" : txtApellidoPaternoAlumno.getText().trim();
+        String apellidoMaterno = txtApellidoMaternoAlumno.getText() == null ? "" : txtApellidoMaternoAlumno.getText().trim();
+        String numeroControl = txtNumeroControlAlumno.getText() == null ? "" : txtNumeroControlAlumno.getText().trim();
+        ItemCombo grupo = cbGrupoAlumno.getValue();
+        ItemCombo sexo = cbSexoAlumno.getValue();
+
+        if (nombre.isEmpty() || apellidoPaterno.isEmpty() || apellidoMaterno.isEmpty() || numeroControl.isEmpty() || grupo == null || sexo == null) {
+            mostrarError("captura nombre, apellidos, numero de control, grupo y sexo");
+            return;
+        }
+
+        if (modoEdicion && alumnoSeleccionado != null) {
+            actualizarAlumno(nombre, apellidoPaterno, apellidoMaterno, numeroControl, grupo.getId(), sexo.getId());
+        } else {
+            insertarAlumno(nombre, apellidoPaterno, apellidoMaterno, numeroControl, grupo.getId(), sexo.getId());
+        }
+    }
+
+    private void insertarAlumno(String nombre, String apellidoPaterno, String apellidoMaterno, String numeroControl, int idGrupoCiclo, int idSexo) {
+        String sql = """
+                insert into alumno(
+                id_grupo_ciclo,
+                num_control,
+                nombre,
+                apellido_paterno,
+                apellido_materno,
+                id_sexo,
+                id_estatus_general
+                )
+                values(?,?,?,?,?,?,1)
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idGrupoCiclo);
+            ps.setString(2, numeroControl);
+            ps.setString(3, nombre);
+            ps.setString(4, apellidoPaterno);
+            ps.setString(5, apellidoMaterno);
+            ps.setInt(6, idSexo);
+
+            ps.executeUpdate();
+
+            mostrarInfo("alumno guardado correctamente");
+            limpiarFormulario();
+            cargarAlumnos();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al guardar alumno. verifica que el numero de control no exista");
+        }
+    }
+
+    private void actualizarAlumno(String nombre, String apellidoPaterno, String apellidoMaterno, String numeroControl, int idGrupoCiclo, int idSexo) {
+        String sql = """
+                update alumno
+                set id_grupo_ciclo=?,
+                num_control=?,
+                nombre=?,
+                apellido_paterno=?,
+                apellido_materno=?,
+                id_sexo=?
+                where id_alumno=?
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idGrupoCiclo);
+            ps.setString(2, numeroControl);
+            ps.setString(3, nombre);
+            ps.setString(4, apellidoPaterno);
+            ps.setString(5, apellidoMaterno);
+            ps.setInt(6, idSexo);
+            ps.setInt(7, alumnoSeleccionado.getIdAlumno());
+
+            ps.executeUpdate();
+
+            mostrarInfo("alumno actualizado correctamente");
+            limpiarFormulario();
+            cargarAlumnos();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al actualizar alumno");
+        }
+    }
+
+    @FXML
+    private void handleEditarAlumno() {
+        if (alumnoSeleccionado == null) {
+            mostrarError("selecciona un alumno de la tabla");
+            return;
+        }
+
+        modoEdicion = true;
+
+        txtNombreAlumno.setText(alumnoSeleccionado.getNombre());
+        txtApellidoPaternoAlumno.setText(alumnoSeleccionado.getApellidoPaterno());
+        txtApellidoMaternoAlumno.setText(alumnoSeleccionado.getApellidoMaterno());
+        txtNumeroControlAlumno.setText(alumnoSeleccionado.getNumeroControl());
+
+        seleccionarComboPorId(cbGrupoAlumno, alumnoSeleccionado.getIdGrupoCiclo());
+        seleccionarComboPorId(cbSexoAlumno, alumnoSeleccionado.getIdSexo());
+    }
+
+    @FXML
+    private void handleCambiarEstatusAlumno() {
+        if (alumnoSeleccionado == null) {
+            mostrarError("selecciona un alumno de la tabla");
+            return;
+        }
+
+        int nuevoEstatus = alumnoSeleccionado.getEstatus().equalsIgnoreCase("activo") ? 0 : 1;
+
+        String sql = "update alumno set id_estatus_general=? where id_alumno=?";
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, nuevoEstatus);
+            ps.setInt(2, alumnoSeleccionado.getIdAlumno());
+
+            ps.executeUpdate();
+
+            mostrarInfo("estatus actualizado correctamente");
+            limpiarFormulario();
+            cargarAlumnos();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cambiar estatus");
+        }
+    }
+
+    private void configurarBusqueda() {
+        FilteredList<AlumnoJDM> filtro = new FilteredList<>(listaAlumnos, p -> true);
+
+        txtBuscarAlumnoInterno.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro(filtro));
+        cbFiltroAlumnos.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro(filtro));
+
+        tablaAlumnos.setItems(filtro);
+    }
+
+    private void aplicarFiltro(FilteredList<AlumnoJDM> filtro) {
+        String texto = txtBuscarAlumnoInterno.getText() == null ? "" : txtBuscarAlumnoInterno.getText().toLowerCase();
+        String estatus = cbFiltroAlumnos.getValue() == null ? "todos" : cbFiltroAlumnos.getValue().toLowerCase();
+
+        filtro.setPredicate(alumno -> {
+            boolean coincideTexto =
+                    alumno.getNombreCompleto().toLowerCase().contains(texto) ||
+                            alumno.getNumeroControl().toLowerCase().contains(texto) ||
+                            alumno.getGrupo().toLowerCase().contains(texto) ||
+                            alumno.getSexo().toLowerCase().contains(texto);
+
+            boolean coincideEstatus =
+                    estatus.equals("todos") ||
+                            alumno.getEstatus().toLowerCase().equals(estatus);
+
+            return coincideTexto && coincideEstatus;
+        });
+    }
+
+    private void seleccionarComboPorId(ComboBox<ItemCombo> combo, int id) {
+        for (ItemCombo item : combo.getItems()) {
+            if (item.getId() == id) {
+                combo.setValue(item);
+                return;
+            }
+        }
+    }
+
+    private void limpiarFormulario() {
+        txtNombreAlumno.clear();
+        txtApellidoPaternoAlumno.clear();
+        txtApellidoMaternoAlumno.clear();
+        txtNumeroControlAlumno.clear();
+        cbGrupoAlumno.setValue(null);
+        cbSexoAlumno.setValue(null);
+
+        alumnoSeleccionado = null;
+        modoEdicion = false;
+        tablaAlumnos.getSelectionModel().clearSelection();
+    }
+
+    private void mostrarError(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    private void mostrarInfo(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("informacion");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    public static class ItemCombo {
+        private final int id;
+        private final String nombre;
+
+        public ItemCombo(int id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        @Override
+        public String toString() {
+            return nombre;
+        }
+    }
+
+    public static class AlumnoJDM {
+        private final int idAlumno;
+        private final String nombre;
+        private final String apellidoPaterno;
+        private final String apellidoMaterno;
+        private final String numeroControl;
+        private final int idGrupoCiclo;
+        private final String grupo;
+        private final int idSexo;
+        private final String sexo;
+        private final String estatus;
+
+        public AlumnoJDM(int idAlumno, String nombre, String apellidoPaterno, String apellidoMaterno, String numeroControl, int idGrupoCiclo, String grupo, int idSexo, String sexo, String estatus) {
+            this.idAlumno = idAlumno;
+            this.nombre = nombre;
+            this.apellidoPaterno = apellidoPaterno;
+            this.apellidoMaterno = apellidoMaterno;
+            this.numeroControl = numeroControl;
+            this.idGrupoCiclo = idGrupoCiclo;
+            this.grupo = grupo;
+            this.idSexo = idSexo;
+            this.sexo = sexo;
+            this.estatus = estatus;
+        }
+
+        public int getIdAlumno() { return idAlumno; }
+        public String getNombre() { return nombre; }
+        public String getApellidoPaterno() { return apellidoPaterno; }
+        public String getApellidoMaterno() { return apellidoMaterno; }
+        public String getNombreCompleto() { return nombre + " " + apellidoPaterno + " " + apellidoMaterno; }
+        public String getNumeroControl() { return numeroControl; }
+        public int getIdGrupoCiclo() { return idGrupoCiclo; }
+        public String getGrupo() { return grupo; }
+        public int getIdSexo() { return idSexo; }
+        public String getSexo() { return sexo; }
+        public String getEstatus() { return estatus; }
     }
 }

@@ -14,7 +14,12 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<StackPane prefHeight="643.0" prefWidth="904.0" style="-fx-background-color: linear-gradient(to bottom right, #eaf4ff, #f7faff);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.proyecto.controllers.LoginController">
+<StackPane prefHeight="643.0"
+           prefWidth="904.0"
+           style="-fx-background-color: linear-gradient(to bottom right, #eaf4ff, #f7faff);"
+           xmlns="http://javafx.com/javafx/23.0.1"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="application.proyecto.controllers.LoginController">
 
    <children>
 
@@ -27,6 +32,10 @@
       </AnchorPane>
 
       <VBox alignment="TOP_CENTER" maxWidth="420.0" spacing="12.0">
+         <padding>
+            <Insets bottom="18.0" left="20.0" right="20.0" top="18.0" />
+         </padding>
+
          <children>
 
             <Text text="S.I.A.T">
@@ -35,9 +44,9 @@
                </font>
             </Text>
 
-            <Text text="Sistema de Intervension y Alerta Temprana">
+            <Text text="Sistema de Intervencion y Alerta Temprana">
                <font>
-                  <Font name="Arial Black" size="18.0" />
+                  <Font name="Arial Black" size="17.0" />
                </font>
             </Text>
 
@@ -47,10 +56,20 @@
                </image>
             </ImageView>
 
-            <AnchorPane maxWidth="366.0" prefHeight="320.0" prefWidth="366.0" style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #ced6e9; -fx-border-radius: 12;">
+            <AnchorPane maxWidth="366.0"
+                        prefHeight="320.0"
+                        prefWidth="366.0"
+                        style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #ced6e9; -fx-border-radius: 12;">
                <children>
 
-                  <VBox layoutX="26.0" layoutY="24.0" prefHeight="284.0" prefWidth="316.0" spacing="12.0" AnchorPane.leftAnchor="25.0" AnchorPane.rightAnchor="25.0" AnchorPane.topAnchor="23.0">
+                  <VBox layoutX="26.0"
+                        layoutY="24.0"
+                        prefHeight="284.0"
+                        prefWidth="316.0"
+                        spacing="12.0"
+                        AnchorPane.leftAnchor="25.0"
+                        AnchorPane.rightAnchor="25.0"
+                        AnchorPane.topAnchor="23.0">
                      <children>
 
                         <Text text="Iniciar Sesion:">
@@ -58,11 +77,38 @@
                               <Font name="Arial Black" size="16.0" />
                            </font>
                         </Text>
-                        <TextField fx:id="txtUsuario" prefHeight="36.0" promptText="No. Empleado" style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
-                        <PasswordField fx:id="txtContrasena" prefHeight="36.0" promptText="Contraseña" style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
-                        <ComboBox fx:id="cbRol" opacity="0.48" prefHeight="36.0" prefWidth="318.0" promptText="ROL" style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
 
-                        <Button fx:id="btnIngresar" alignment="CENTER" contentDisplay="CENTER" onAction="#clikIngresar" prefHeight="38.0" style="-fx-background-color: #1F2A44; -fx-background-radius: 8;" text="INGRESAR" textFill="WHITE" />
+                        <TextField fx:id="txtUsuario"
+                                   prefHeight="36.0"
+                                   promptText="No. empleado"
+                                   style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
+
+                        <PasswordField fx:id="txtContrasena"
+                                       prefHeight="36.0"
+                                       promptText="Contrasena"
+                                       style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
+
+                        <ComboBox fx:id="cbRol"
+                                  prefHeight="36.0"
+                                  prefWidth="318.0"
+                                  promptText="Rol"
+                                  style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
+
+                        <Button fx:id="btnIngresar"
+                                alignment="CENTER"
+                                contentDisplay="CENTER"
+                                onAction="#clikIngresar"
+                                prefHeight="38.0"
+                                maxWidth="1.7976931348623157E308"
+                                style="-fx-background-color: #1F2A44; -fx-background-radius: 8; -fx-cursor: hand;"
+                                text="INGRESAR"
+                                textFill="WHITE" />
+
+                        <Button text="Olvide mi contrasena"
+                                onAction="#handleMostrarRecuperacion"
+                                maxWidth="1.7976931348623157E308"
+                                style="-fx-background-color: transparent; -fx-text-fill: #1d5bd6; -fx-cursor: hand;" />
+
                      </children>
                   </VBox>
 
@@ -70,10 +116,6 @@
             </AnchorPane>
 
          </children>
-
-         <padding>
-            <Insets bottom="18.0" left="20.0" right="20.0" top="18.0" />
-         </padding>
       </VBox>
 
    </children>

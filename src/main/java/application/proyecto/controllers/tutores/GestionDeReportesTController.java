@@ -4,8 +4,7 @@ import application.proyecto.controllers.BaseController;
 import application.proyecto.utils.ConexionBD;
 import application.proyecto.utils.SesionOrientacion;
 import application.proyecto.utils.SesionUsuario;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import javafx.collections.*;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -17,24 +16,22 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.StackPane;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 
-public class GestionDeAlertasTController extends BaseController {
+public class GestionDeReportesTController extends BaseController {
 
     @FXML private ComboBox<String> cmbGrupoFiltro;
     @FXML private ComboBox<String> cmbTipoFiltro;
     @FXML private ComboBox<String> cmbEstatusFiltro;
     @FXML private TextField txtBuscarTabla;
 
-    @FXML private TableView<AlertaTutor> tablaGestionAlertasTutor;
-    @FXML private TableColumn<AlertaTutor, String> colAlumno;
-    @FXML private TableColumn<AlertaTutor, String> colGrupo;
-    @FXML private TableColumn<AlertaTutor, String> colMateria;
-    @FXML private TableColumn<AlertaTutor, String> colTipoAlerta;
-    @FXML private TableColumn<AlertaTutor, String> colPrioridad;
-    @FXML private TableColumn<AlertaTutor, String> colEstatus;
+    @FXML private TableView<ReporteTutor> tablaGestionReportesTutor;
+    @FXML private TableColumn<ReporteTutor, String> colAlumno;
+    @FXML private TableColumn<ReporteTutor, String> colGrupo;
+    @FXML private TableColumn<ReporteTutor, String> colMateria;
+    @FXML private TableColumn<ReporteTutor, String> colTipoReporte;
+    @FXML private TableColumn<ReporteTutor, String> colMaestro;
+    @FXML private TableColumn<ReporteTutor, String> colEstatus;
 
     @FXML private Label lblNombreAlumno;
     @FXML private Label lblNumeroControl;
@@ -42,15 +39,15 @@ public class GestionDeAlertasTController extends BaseController {
     @FXML private Label lblSemestre;
     @FXML private Label lblTurno;
     @FXML private Label lblMateria;
-    @FXML private Label lblTipoAlerta;
-    @FXML private Label lblPrioridadDetalle;
-    @FXML private Label lblMotivoDetalle;
+    @FXML private Label lblMaestro;
+    @FXML private Label lblTipoReporte;
+    @FXML private Label lblDescripcion;
     @FXML private Label lblFechaCreacion;
     @FXML private Label lblEstatusDetalle;
 
-    private final ObservableList<AlertaTutor> listaAlertas = FXCollections.observableArrayList();
-    private FilteredList<AlertaTutor> listaFiltrada;
-    private AlertaTutor alertaSeleccionada;
+    private final ObservableList<ReporteTutor> listaReportes = FXCollections.observableArrayList();
+    private FilteredList<ReporteTutor> listaFiltrada;
+    private ReporteTutor reporteSeleccionado;
 
     @FXML
     public void initialize() {
@@ -58,7 +55,7 @@ public class GestionDeAlertasTController extends BaseController {
         configurarFiltros();
         configurarEventos();
         cargarGrupos();
-        cargarAlertas();
+        cargarReportes();
         limpiarDetalle();
     }
 
@@ -70,15 +67,15 @@ public class GestionDeAlertasTController extends BaseController {
         colAlumno.setCellValueFactory(new PropertyValueFactory<>("alumno"));
         colGrupo.setCellValueFactory(new PropertyValueFactory<>("grupo"));
         colMateria.setCellValueFactory(new PropertyValueFactory<>("materia"));
-        colTipoAlerta.setCellValueFactory(new PropertyValueFactory<>("tipoAlerta"));
-        colPrioridad.setCellValueFactory(new PropertyValueFactory<>("prioridad"));
+        colTipoReporte.setCellValueFactory(new PropertyValueFactory<>("tipoReporte"));
+        colMaestro.setCellValueFactory(new PropertyValueFactory<>("maestro"));
         colEstatus.setCellValueFactory(new PropertyValueFactory<>("estatus"));
 
-        listaFiltrada = new FilteredList<>(listaAlertas, p -> true);
-        tablaGestionAlertasTutor.setItems(listaFiltrada);
+        listaFiltrada = new FilteredList<>(listaReportes, p -> true);
+        tablaGestionReportesTutor.setItems(listaFiltrada);
 
-        tablaGestionAlertasTutor.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
-            alertaSeleccionada = newValue;
+        tablaGestionReportesTutor.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
+            reporteSeleccionado = newValue;
             mostrarDetalle(newValue);
         });
     }
@@ -143,12 +140,12 @@ public class GestionDeAlertasTController extends BaseController {
         }
     }
 
-    private void cargarAlertas() {
-        listaAlertas.clear();
+    private void cargarReportes() {
+        listaReportes.clear();
 
         String sql = """
                 select
-                a.id_alerta,
+                rd.id_reporte_docente,
                 al.id_alumno,
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
@@ -156,25 +153,25 @@ public class GestionDeAlertasTController extends BaseController {
                 g.semestre,
                 ct.nombre as turno,
                 ifnull(m.nombre,'sin materia') as materia,
-                cta.nombre as tipo_alerta,
-                cpa.nombre as prioridad,
-                a.motivo as motivo_detalle,
-                cea.nombre as estatus,
-                date_format(a.creada_en,'%Y-%m-%d') as fecha
+                concat(ma.nombre,' ',ma.apellido_paterno,' ',ma.apellido_materno) as maestro,
+                cta.nombre as tipo_reporte,
+                rd.descripcion,
+                cer.nombre as estatus,
+                date_format(rd.creado_en,'%Y-%m-%d') as fecha
                 from tutoria_asignacion ta
+                inner join alumno al on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join alumno al on al.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join alerta a on a.id_alumno=al.id_alumno
-                left join carga c on a.id_carga=c.id_carga
+                inner join reporte_docente rd on rd.id_alumno=al.id_alumno
+                left join carga c on rd.id_carga=c.id_carga
                 left join materia m on c.id_materia=m.id_materia
-                inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
-                inner join cat_prioridad_alerta cpa on a.id_prioridad_alerta=cpa.id_prioridad_alerta
-                inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
+                left join maestro ma on c.id_maestro=ma.id_maestro
+                inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
+                inner join cat_estatus_reporte_docente cer on rd.id_estatus_reporte_docente=cer.id_estatus_reporte_docente
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by a.creada_en desc
+                order by rd.creado_en desc
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -184,8 +181,8 @@ public class GestionDeAlertasTController extends BaseController {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    listaAlertas.add(new AlertaTutor(
-                            rs.getInt("id_alerta"),
+                    listaReportes.add(new ReporteTutor(
+                            rs.getInt("id_reporte_docente"),
                             rs.getInt("id_alumno"),
                             rs.getString("num_control"),
                             rs.getString("alumno"),
@@ -193,9 +190,9 @@ public class GestionDeAlertasTController extends BaseController {
                             rs.getString("semestre"),
                             rs.getString("turno"),
                             rs.getString("materia"),
-                            rs.getString("tipo_alerta"),
-                            rs.getString("prioridad"),
-                            rs.getString("motivo_detalle"),
+                            rs.getString("maestro"),
+                            rs.getString("tipo_reporte"),
+                            rs.getString("descripcion"),
                             rs.getString("estatus"),
                             rs.getString("fecha")
                     ));
@@ -204,7 +201,7 @@ public class GestionDeAlertasTController extends BaseController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al cargar alertas");
+            mostrarError("error al cargar reportes");
         }
     }
 
@@ -214,98 +211,84 @@ public class GestionDeAlertasTController extends BaseController {
         String estatusFiltro = cmbEstatusFiltro.getValue() == null ? "todos" : cmbEstatusFiltro.getValue().toLowerCase();
         String texto = txtBuscarTabla.getText() == null ? "" : txtBuscarTabla.getText().toLowerCase();
 
-        listaFiltrada.setPredicate(alerta -> {
-            boolean coincideGrupo = grupo.equals("todos") || alerta.getGrupo().toLowerCase().equals(grupo);
-
-            boolean coincideTipo = tipo.equals("todos") || alerta.getTipoAlerta().toLowerCase().equals(tipo);
+        listaFiltrada.setPredicate(reporte -> {
+            boolean coincideGrupo = grupo.equals("todos") || reporte.getGrupo().toLowerCase().equals(grupo);
+            boolean coincideTipo = tipo.equals("todos") || reporte.getTipoReporte().toLowerCase().equals(tipo);
 
             boolean coincideEstatus = switch (estatusFiltro) {
-                case "activa" -> alerta.getEstatus().equalsIgnoreCase("pendiente") ||
-                        alerta.getEstatus().equalsIgnoreCase("seguimiento");
-                case "inactiva" -> alerta.getEstatus().equalsIgnoreCase("cerrada");
+                case "activa" -> reporte.getEstatus().equalsIgnoreCase("pendiente") ||
+                        reporte.getEstatus().equalsIgnoreCase("seguimiento");
+                case "inactiva" -> reporte.getEstatus().equalsIgnoreCase("cerrado") ||
+                        reporte.getEstatus().equalsIgnoreCase("cerrada");
                 default -> true;
             };
 
             boolean coincideTexto =
-                    alerta.getAlumno().toLowerCase().contains(texto) ||
-                            alerta.getNumControl().toLowerCase().contains(texto) ||
-                            alerta.getMateria().toLowerCase().contains(texto) ||
-                            alerta.getPrioridad().toLowerCase().contains(texto) ||
-                            alerta.getFecha().toLowerCase().contains(texto);
+                    reporte.getAlumno().toLowerCase().contains(texto) ||
+                            reporte.getNumControl().toLowerCase().contains(texto) ||
+                            reporte.getMateria().toLowerCase().contains(texto) ||
+                            reporte.getMaestro().toLowerCase().contains(texto) ||
+                            reporte.getFecha().toLowerCase().contains(texto);
 
             return coincideGrupo && coincideTipo && coincideEstatus && coincideTexto;
         });
     }
 
-    private void mostrarDetalle(AlertaTutor alerta) {
-        if (alerta == null) {
+    private void mostrarDetalle(ReporteTutor reporte) {
+        if (reporte == null) {
             limpiarDetalle();
             return;
         }
 
-        lblNombreAlumno.setText(alerta.getAlumno());
-        lblNumeroControl.setText(alerta.getNumControl());
-        lblGrupo.setText(alerta.getGrupo());
-        lblSemestre.setText(alerta.getSemestre());
-        lblTurno.setText(alerta.getTurno());
-        lblMateria.setText(alerta.getMateria());
-        lblTipoAlerta.setText(alerta.getTipoAlerta());
-        lblPrioridadDetalle.setText(alerta.getPrioridad());
-        lblMotivoDetalle.setText(alerta.getMotivoDetalle());
-        lblFechaCreacion.setText(alerta.getFecha());
-        lblEstatusDetalle.setText(alerta.getEstatus());
+        lblNombreAlumno.setText(reporte.getAlumno());
+        lblNumeroControl.setText(reporte.getNumControl());
+        lblGrupo.setText(reporte.getGrupo());
+        lblSemestre.setText(reporte.getSemestre());
+        lblTurno.setText(reporte.getTurno());
+        lblMateria.setText(reporte.getMateria());
+        lblMaestro.setText(reporte.getMaestro());
+        lblTipoReporte.setText(reporte.getTipoReporte());
+        lblDescripcion.setText(reporte.getDescripcion());
+        lblFechaCreacion.setText(reporte.getFecha());
+        lblEstatusDetalle.setText(reporte.getEstatus());
     }
 
     private void limpiarDetalle() {
-        lblNombreAlumno.setText("Selecciona una alerta");
+        lblNombreAlumno.setText("Selecciona un reporte");
         lblNumeroControl.setText("---");
         lblGrupo.setText("---");
         lblSemestre.setText("---");
         lblTurno.setText("---");
         lblMateria.setText("---");
-        lblTipoAlerta.setText("Sin seleccionar");
-        lblPrioridadDetalle.setText("Sin seleccionar");
-        lblMotivoDetalle.setText("Selecciona una alerta para mostrar el motivo detallado.");
+        lblMaestro.setText("---");
+        lblTipoReporte.setText("Sin seleccionar");
+        lblDescripcion.setText("Selecciona un reporte para mostrar la descripcion.");
         lblFechaCreacion.setText("---");
         lblEstatusDetalle.setText("---");
     }
 
     @FXML
-    private void handleCambiarEstatus() {
-        if (alertaSeleccionada == null) {
-            mostrarError("selecciona una alerta");
-            return;
-        }
-
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("seguimiento", "pendiente", "seguimiento", "cerrada");
-        dialog.setTitle("cambiar estatus");
-        dialog.setHeaderText("Selecciona el nuevo estatus");
-        dialog.setContentText("Estatus:");
-
-        dialog.showAndWait().ifPresent(this::actualizarEstatus);
-    }
-
-    @FXML
-    private void handleRegistrarOrientacion(ActionEvent event) {
-        if (alertaSeleccionada == null) {
-            mostrarError("selecciona una alerta");
+    private void handleDarSeguimiento(ActionEvent event) {
+        if (reporteSeleccionado == null) {
+            mostrarError("selecciona un reporte");
             return;
         }
 
         SesionOrientacion.limpiar();
 
-        SesionOrientacion.setIdAlerta(alertaSeleccionada.getIdAlerta());
-        SesionOrientacion.setIdAlumno(alertaSeleccionada.getIdAlumno());
-        SesionOrientacion.setNumControl(alertaSeleccionada.getNumControl());
-        SesionOrientacion.setNombreAlumno(alertaSeleccionada.getAlumno());
-        SesionOrientacion.setGrupo(alertaSeleccionada.getGrupo());
-        SesionOrientacion.setSemestre(alertaSeleccionada.getSemestre());
-        SesionOrientacion.setTurno(alertaSeleccionada.getTurno());
-        SesionOrientacion.setMateria(alertaSeleccionada.getMateria());
-        SesionOrientacion.setTipoAlerta(alertaSeleccionada.getTipoAlerta());
-        SesionOrientacion.setPrioridad(alertaSeleccionada.getPrioridad());
-        SesionOrientacion.setMotivoDetalle(alertaSeleccionada.getMotivoDetalle());
-        SesionOrientacion.setFechaAlerta(alertaSeleccionada.getFecha());
+        SesionOrientacion.setIdAlerta(0);
+        SesionOrientacion.setIdReporteDocente(reporteSeleccionado.getIdReporte());
+        SesionOrientacion.setIdAlumno(reporteSeleccionado.getIdAlumno());
+        SesionOrientacion.setNumControl(reporteSeleccionado.getNumControl());
+        SesionOrientacion.setNombreAlumno(reporteSeleccionado.getAlumno());
+        SesionOrientacion.setGrupo(reporteSeleccionado.getGrupo());
+        SesionOrientacion.setSemestre(reporteSeleccionado.getSemestre());
+        SesionOrientacion.setTurno(reporteSeleccionado.getTurno());
+        SesionOrientacion.setMateria(reporteSeleccionado.getMateria());
+        SesionOrientacion.setTipoAlerta(reporteSeleccionado.getTipoReporte());
+        SesionOrientacion.setPrioridad("sin prioridad");
+        SesionOrientacion.setMotivoDetalle(reporteSeleccionado.getDescripcion());
+        SesionOrientacion.setFechaAlerta(reporteSeleccionado.getFecha());
 
         cargarVistaOrientacion(event);
     }
@@ -332,58 +315,6 @@ public class GestionDeAlertasTController extends BaseController {
         }
     }
 
-    @FXML
-    private void handleCerrarAlerta() {
-        if (alertaSeleccionada == null) {
-            mostrarError("selecciona una alerta");
-            return;
-        }
-
-        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmacion.setTitle("confirmar");
-        confirmacion.setHeaderText("cerrar alerta");
-        confirmacion.setContentText("seguro que deseas cerrar esta alerta?");
-
-        confirmacion.showAndWait().ifPresent(respuesta -> {
-            if (respuesta == ButtonType.OK) {
-                actualizarEstatus("cerrada");
-            }
-        });
-    }
-
-    private void actualizarEstatus(String estatus) {
-        int idEstatus = switch (estatus.toLowerCase()) {
-            case "pendiente" -> 1;
-            case "seguimiento" -> 2;
-            case "cerrada" -> 0;
-            default -> 1;
-        };
-
-        String sql = """
-                update alerta
-                set id_estatus_alerta=?,
-                cerrada_en=case when ?=0 then now() else null end
-                where id_alerta=?
-                """;
-
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, idEstatus);
-            ps.setInt(2, idEstatus);
-            ps.setInt(3, alertaSeleccionada.getIdAlerta());
-            ps.executeUpdate();
-
-            mostrarInfo("estatus actualizado correctamente");
-            cargarAlertas();
-            limpiarDetalle();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al actualizar estatus");
-        }
-    }
-
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("error");
@@ -392,16 +323,8 @@ public class GestionDeAlertasTController extends BaseController {
         alert.showAndWait();
     }
 
-    private void mostrarInfo(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("informacion");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
-    }
-
-    public static class AlertaTutor {
-        private final int idAlerta;
+    public static class ReporteTutor {
+        private final int idReporte;
         private final int idAlumno;
         private final String numControl;
         private final String alumno;
@@ -409,15 +332,16 @@ public class GestionDeAlertasTController extends BaseController {
         private final String semestre;
         private final String turno;
         private final String materia;
-        private final String tipoAlerta;
-        private final String prioridad;
-        private final String motivoDetalle;
+        private final String maestro;
+        private final String tipoReporte;
+        private final String descripcion;
         private final String estatus;
         private final String fecha;
 
-        public AlertaTutor(int idAlerta, int idAlumno, String numControl, String alumno, String grupo, String semestre, String turno,
-                           String materia, String tipoAlerta, String prioridad, String motivoDetalle, String estatus, String fecha) {
-            this.idAlerta = idAlerta;
+        public ReporteTutor(int idReporte, int idAlumno, String numControl, String alumno, String grupo, String semestre,
+                            String turno, String materia, String maestro, String tipoReporte, String descripcion,
+                            String estatus, String fecha) {
+            this.idReporte = idReporte;
             this.idAlumno = idAlumno;
             this.numControl = numControl;
             this.alumno = alumno;
@@ -425,14 +349,14 @@ public class GestionDeAlertasTController extends BaseController {
             this.semestre = semestre;
             this.turno = turno;
             this.materia = materia;
-            this.tipoAlerta = tipoAlerta;
-            this.prioridad = prioridad;
-            this.motivoDetalle = motivoDetalle;
+            this.maestro = maestro == null ? "sin maestro" : maestro;
+            this.tipoReporte = tipoReporte;
+            this.descripcion = descripcion == null ? "" : descripcion;
             this.estatus = estatus;
             this.fecha = fecha;
         }
 
-        public int getIdAlerta() { return idAlerta; }
+        public int getIdReporte() { return idReporte; }
         public int getIdAlumno() { return idAlumno; }
         public String getNumControl() { return numControl; }
         public String getAlumno() { return alumno; }
@@ -440,9 +364,9 @@ public class GestionDeAlertasTController extends BaseController {
         public String getSemestre() { return semestre; }
         public String getTurno() { return turno; }
         public String getMateria() { return materia; }
-        public String getTipoAlerta() { return tipoAlerta; }
-        public String getPrioridad() { return prioridad; }
-        public String getMotivoDetalle() { return motivoDetalle; }
+        public String getMaestro() { return maestro; }
+        public String getTipoReporte() { return tipoReporte; }
+        public String getDescripcion() { return descripcion; }
         public String getEstatus() { return estatus; }
         public String getFecha() { return fecha; }
     }

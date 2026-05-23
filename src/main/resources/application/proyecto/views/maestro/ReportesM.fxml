@@ -23,45 +23,19 @@
             style="-fx-background-color: #e5e8f2;">
 
    <top>
-      <HBox alignment="CENTER_LEFT"
-            spacing="12.0"
-            prefHeight="50.0"
-            style="-fx-background-color: #ffffff;">
+      <HBox alignment="CENTER_LEFT" spacing="12.0" prefHeight="50.0" style="-fx-background-color: #ffffff;">
          <padding>
             <Insets top="8.0" right="14.0" bottom="8.0" left="14.0"/>
          </padding>
 
          <Label text="Reportes">
             <font>
-               <Font name="Arial Black" size="15.0"/>
+               <Font name="Arial Black" size="17.0"/>
             </font>
          </Label>
 
          <Region HBox.hgrow="ALWAYS"/>
 
-         <HBox alignment="CENTER_LEFT"
-               spacing="6.0"
-               style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;"
-               prefHeight="32.0">
-            <padding>
-               <Insets left="8.0" right="8.0"/>
-            </padding>
-
-            <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
-               <image>
-                  <Image url="@../../fotos/IconoLupa.png" />
-               </image>
-            </ImageView>
-
-            <TextField fx:id="txtBuscarSuperior"
-                       promptText="Buscar alumno, grupo ..."
-                       prefWidth="180.0"
-                       style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
-               <font>
-                  <Font size="13.0"/>
-               </font>
-            </TextField>
-         </HBox>
 
          <HBox alignment="CENTER_LEFT" spacing="6.0">
             <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
@@ -82,27 +56,19 @@
    </top>
 
    <center>
-      <VBox spacing="15.0" style="-fx-background-color: #e5e8f2;">
+      <VBox spacing="18.0" style="-fx-background-color: #e5e8f2;">
          <padding>
-            <Insets top="15.0" right="15.0" bottom="15.0" left="15.0"/>
+            <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
          </padding>
 
-         <!-- encabezado -->
-         <VBox spacing="2.0">
-            <Label text="Reportes">
-               <font>
-                  <Font name="Arial Black" size="18.0" />
-               </font>
-            </Label>
 
-            <Label text="Generacion y seguimiento de reportes del maestro" textFill="#7a7a7a">
-               <font>
-                  <Font name="Arial Bold Italic" size="11.0" />
-               </font>
-            </Label>
+         <VBox spacing="4.0">
+            <Label text="Reportes"
+                   style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;" />
+            <Label text="Generacion y seguimiento de reportes del maestro"
+                   style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
          </VBox>
 
-         <!-- panel principal -->
          <VBox spacing="14.0"
                VBox.vgrow="ALWAYS"
                style="-fx-background-color: white; -fx-background-radius: 15;">
@@ -116,19 +82,8 @@
                </font>
             </Label>
 
-            <!-- formulario -->
             <HBox spacing="14.0">
-               <VBox spacing="8.0">
-                  <Label text="Materia" textFill="#6b7280">
-                     <font>
-                        <Font size="12.0" />
-                     </font>
-                  </Label>
-                  <ComboBox fx:id="cbMateria"
-                            prefHeight="38.0"
-                            prefWidth="170.0"
-                            promptText="Seleccione materia" />
-               </VBox>
+
 
                <VBox spacing="8.0">
                   <Label text="Grupo" textFill="#6b7280">
@@ -141,6 +96,20 @@
                             prefWidth="150.0"
                             promptText="Seleccione grupo" />
                </VBox>
+
+
+               <VBox spacing="8.0">
+                  <Label text="Materia" textFill="#6b7280">
+                     <font>
+                        <Font size="12.0" />
+                     </font>
+                  </Label>
+                  <ComboBox fx:id="cbMateria"
+                            prefHeight="38.0"
+                            prefWidth="170.0"
+                            promptText="Seleccione materia" />
+               </VBox>
+
 
                <VBox spacing="8.0">
                   <Label text="Turno" textFill="#6b7280">
@@ -190,13 +159,14 @@
                </Label>
 
                <TextArea fx:id="txtDescripcion"
-                         prefHeight="110.0"
-                         promptText="Describe por que se esta generando el reporte. Ejemplo: el alumno presenta ausencias repetidas, no entrega actividades o mantiene bajo rendimiento en la materia..."
+                         prefHeight="100.0"
+                         promptText="Describe por que se esta generando el reporte..."
                          wrapText="true" />
             </VBox>
 
             <HBox alignment="CENTER_RIGHT">
                <Button fx:id="btnGenerarReporte"
+                       onAction="#handleGenerarReporte"
                        prefHeight="42.0"
                        prefWidth="190.0"
                        style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand;"
@@ -213,13 +183,7 @@
                </font>
             </Label>
 
-            <!-- barra interna de filtros -->
             <HBox alignment="CENTER_LEFT" spacing="10.0">
-               <ComboBox fx:id="cbFiltroMateria"
-                         prefHeight="36.0"
-                         prefWidth="150.0"
-                         promptText="Materia" />
-
                <ComboBox fx:id="cbFiltroMotivo"
                          prefHeight="36.0"
                          prefWidth="150.0"
@@ -245,7 +209,7 @@
                   </ImageView>
 
                   <TextField fx:id="txtBuscarTabla"
-                             promptText="Buscar por alumno, grupo o materia..."
+                             promptText="Buscar por grupo, turno o materia..."
                              style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
                              HBox.hgrow="ALWAYS">
                      <font>
@@ -255,10 +219,9 @@
                </HBox>
             </HBox>
 
-            <!-- tabla -->
             <TableView fx:id="tablaReportes"
                        VBox.vgrow="ALWAYS"
-                       prefHeight="260.0">
+                       prefHeight="250.0">
                <columns>
                   <TableColumn fx:id="colNoControl" text="No. Control" prefWidth="110.0" />
                   <TableColumn fx:id="colNombre" text="Nombre" prefWidth="170.0" />
@@ -273,6 +236,7 @@
                   <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                </columnResizePolicy>
             </TableView>
+
          </VBox>
       </VBox>
    </center>

@@ -12,22 +12,19 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
 <BorderPane fx:controller="application.proyecto.controllers.jefedemaestros.InicioJDMController"
-            prefWidth="900.0" prefHeight="650.0"
+            prefWidth="900.0"
+            prefHeight="650.0"
             xmlns="http://javafx.com/javafx/23.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
             style="-fx-background-color: #f4f6fb;">
 
    <top>
-      <HBox alignment="CENTER_LEFT"
-            spacing="12.0"
-            prefHeight="50.0"
-            style="-fx-background-color: #ffffff;">
+      <HBox alignment="CENTER_LEFT" spacing="12.0" prefHeight="50.0" style="-fx-background-color: #ffffff;">
          <padding>
             <Insets top="8.0" right="14.0" bottom="8.0" left="14.0"/>
          </padding>
@@ -40,28 +37,6 @@
 
          <Region HBox.hgrow="ALWAYS"/>
 
-         <HBox alignment="CENTER_LEFT"
-               spacing="6.0"
-               style="-fx-background-color: #eaf1fb; -fx-background-radius: 8;"
-               prefHeight="32.0">
-            <padding>
-               <Insets left="8.0" right="8.0"/>
-            </padding>
-
-            <ImageView fitHeight="18.0" fitWidth="18.0" preserveRatio="true">
-               <image>
-                  <Image url="@../../fotos/IconoLupa.png" />
-               </image>
-            </ImageView>
-
-            <TextField promptText="Buscar alumno, grupo..."
-                       prefWidth="180.0"
-                       style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
-               <font>
-                  <Font size="13.0"/>
-               </font>
-            </TextField>
-         </HBox>
 
          <HBox alignment="CENTER_LEFT" spacing="6.0">
             <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
@@ -79,6 +54,9 @@
             </Button>
          </HBox>
       </HBox>
+
+
+
    </top>
 
    <center>
@@ -92,17 +70,16 @@
                   <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                </padding>
 
-               <!-- encabezado -->
                <VBox spacing="4.0">
                   <Label text="Panel Principal">
                      <font>
                         <Font name="Arial Black" size="32.0"/>
                      </font>
                   </Label>
-                  <Label text="Resumen general del sistema" style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
+                  <Label text="Resumen general del sistema"
+                         style="-fx-font-size: 16px; -fx-text-fill: #6b7280;" />
                </VBox>
 
-               <!-- tarjetas -->
                <HBox spacing="14.0">
                   <VBox spacing="8.0" HBox.hgrow="ALWAYS"
                         style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e5e7eb; -fx-border-radius: 14;">
@@ -110,10 +87,12 @@
                         <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                      </padding>
                      <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Label text="👥" style="-fx-font-size: 18px; -fx-background-color: #e8f1ff; -fx-background-radius: 12; -fx-padding: 10;" />
+                        <Label text="👥"
+                               style="-fx-font-size: 18px; -fx-background-color: #e8f1ff; -fx-background-radius: 12; -fx-padding: 10;" />
                         <VBox spacing="2.0">
                            <Label text="Total Alumnos" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
-                           <Label fx:id="lblTotalAlumnos" text="--" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
+                           <Label fx:id="lblTotalAlumnos" text="--"
+                                  style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
                            <Label text="Inscritos activos" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
                         </VBox>
                      </HBox>
@@ -125,11 +104,13 @@
                         <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                      </padding>
                      <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Label text="⚠" style="-fx-font-size: 18px; -fx-text-fill: #dc2626; -fx-background-color: #fdecec; -fx-background-radius: 12; -fx-padding: 10;" />
+                        <Label text="⚠"
+                               style="-fx-font-size: 18px; -fx-text-fill: #dc2626; -fx-background-color: #fdecec; -fx-background-radius: 12; -fx-padding: 10;" />
                         <VBox spacing="2.0">
                            <Label text="Alertas Activas" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
-                           <Label fx:id="lblAlertasActivas" text="--" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
-                           <Label text="Requieren atencion" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
+                           <Label fx:id="lblAlertasActivas" text="--"
+                                  style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
+                           <Label text="Rojas y medias" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
                         </VBox>
                      </HBox>
                   </VBox>
@@ -140,11 +121,13 @@
                         <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                      </padding>
                      <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Label text="🛡" style="-fx-font-size: 18px; -fx-text-fill: #d97706; -fx-background-color: #fff8e6; -fx-background-radius: 12; -fx-padding: 10;" />
+                        <Label text="🛡"
+                               style="-fx-font-size: 18px; -fx-text-fill: #d97706; -fx-background-color: #fff8e6; -fx-background-radius: 12; -fx-padding: 10;" />
                         <VBox spacing="2.0">
-                           <Label text="En Riesgo Bajo" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
-                           <Label fx:id="lblRiesgoBajo" text="--" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
-                           <Label text="Monitoreando" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
+                           <Label text="Alertas Medias" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
+                           <Label fx:id="lblRiesgoBajo" text="--"
+                                  style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
+                           <Label text="Seguimiento preventivo" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
                         </VBox>
                      </HBox>
                   </VBox>
@@ -155,10 +138,12 @@
                         <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                      </padding>
                      <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Label text="👥" style="-fx-font-size: 18px; -fx-background-color: #e8f1ff; -fx-background-radius: 12; -fx-padding: 10;" />
+                        <Label text="🏫"
+                               style="-fx-font-size: 18px; -fx-background-color: #e8f1ff; -fx-background-radius: 12; -fx-padding: 10;" />
                         <VBox spacing="2.0">
-                           <Label text="Total de Grupos" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
-                           <Label fx:id="lblTotalGrupos" text="--" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
+                           <Label text="Total Grupos" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
+                           <Label fx:id="lblTotalGrupos" text="--"
+                                  style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
                            <Label text="Grupos activos" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
                         </VBox>
                      </HBox>
@@ -170,39 +155,37 @@
                         <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
                      </padding>
                      <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <Label text="📘" style="-fx-font-size: 18px; -fx-background-color: #f0eaff; -fx-background-radius: 12; -fx-padding: 10;" />
+                        <Label text="📘"
+                               style="-fx-font-size: 18px; -fx-background-color: #f0eaff; -fx-background-radius: 12; -fx-padding: 10;" />
                         <VBox spacing="2.0">
-                           <Label text="Total de Maestros" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
-                           <Label fx:id="lblTotalMaestros" text="--" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
+                           <Label text="Total Maestros" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
+                           <Label fx:id="lblTotalMaestros" text="--"
+                                  style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #1f2937;" />
                            <Label text="Maestros registrados" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;" />
                         </VBox>
                      </HBox>
                   </VBox>
                </HBox>
 
-               <!-- subtitulo tabla -->
                <VBox spacing="4.0">
-                  <Label text="Alertas Recientes" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-                  <Label text="Alumnos que requieren intervencion" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
+                  <Label text="Resumen de Alertas" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                  <Label text="Alumnos con alertas, porcentaje de entregas y porcentaje de faltas"
+                         style="-fx-font-size: 13px; -fx-text-fill: #6b7280;" />
                </VBox>
 
-               <!-- tarjeta tabla -->
-               <VBox VBox.vgrow="ALWAYS"
-                     spacing="14.0"
+               <VBox VBox.vgrow="ALWAYS" spacing="14.0"
                      style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
                   <padding>
                      <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
                   </padding>
 
-                  <!-- barra interna -->
                   <HBox spacing="10.0" alignment="CENTER_LEFT">
                      <ComboBox fx:id="cmbFiltroAlertas"
                                prefHeight="36.0"
                                prefWidth="140.0"
                                promptText="Alertas" />
 
-                     <HBox alignment="CENTER_LEFT"
-                           spacing="8.0"
+                     <HBox alignment="CENTER_LEFT" spacing="8.0"
                            style="-fx-background-color: #f4f6fb; -fx-background-radius: 10;"
                            HBox.hgrow="ALWAYS">
                         <padding>
@@ -216,26 +199,23 @@
                         </ImageView>
 
                         <TextField fx:id="txtBuscarAlertasRecientes"
-                                   promptText="Buscar alumno, grupo o materia..."
+                                   promptText="Buscar por nombre, grupo o materia..."
                                    style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
                                    HBox.hgrow="ALWAYS"/>
                      </HBox>
                   </HBox>
 
-                  <!-- tabla -->
                   <TableView fx:id="tablaAlertasRecientes"
                              VBox.vgrow="ALWAYS"
                              prefHeight="320.0"
                              style="-fx-background-radius: 10;">
                      <columns>
-                        <TableColumn fx:id="colIdAlerta" text="ID" prefWidth="70.0" />
-                        <TableColumn fx:id="colNombreAlerta" text="Nombre" prefWidth="180.0" />
-                        <TableColumn fx:id="colGrupoAlerta" text="Grupo" prefWidth="110.0" />
-                        <TableColumn fx:id="colMateriaAlerta" text="Materia" prefWidth="260.0" />
-                        <TableColumn fx:id="colCalificacionAlerta" text="Calificacion" prefWidth="120.0" />
-                        <TableColumn fx:id="colFaltasAlerta" text="Faltas" prefWidth="100.0" />
+                        <TableColumn fx:id="colNombreAlerta" text="Nombre" prefWidth="210.0" />
+                        <TableColumn fx:id="colGrupoAlerta" text="Grupo" prefWidth="120.0" />
+                        <TableColumn fx:id="colMateriaAlerta" text="Materia" prefWidth="270.0" />
+                        <TableColumn fx:id="colPorcentajeEntregaAlerta" text="Entrega %" prefWidth="120.0" />
+                        <TableColumn fx:id="colPorcentajeFaltasAlerta" text="Faltas %" prefWidth="120.0" />
                         <TableColumn fx:id="colEstatusAlerta" text="Estatus" prefWidth="120.0" />
-                        <TableColumn fx:id="colAccionAlerta" text="Accion" prefWidth="140.0" />
                      </columns>
                      <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

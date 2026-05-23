@@ -14,7 +14,7 @@ public class LoginApplication extends Application {
         Scene scene = new Scene(fxmlLoader.load());
         stage.setTitle("LOGIN");
         stage.setScene(scene);
-        stage.setMaximized(true);
+        stage.setMaximized(false);
         stage.setFullScreen(false); // (oculta barra del sistema)
         stage.show();
     }

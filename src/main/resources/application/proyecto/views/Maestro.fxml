@@ -103,7 +103,7 @@
                           prefHeight="52.0"
                           maxWidth="1.7976931348623157E308"
                           style="-fx-background-color: #1F2A44;"
-                          text="Calificacion"
+                          text="Actividades"
                           textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="35.0" fitWidth="37.0" pickOnBounds="true" preserveRatio="true">
@@ -151,6 +151,28 @@
                   <ImageView fitHeight="36.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../fotos/IconoReportes.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+
+            <ToggleButton fx:id="btnHistorial"
+                          alignment="CENTER_LEFT"
+                          mnemonicParsing="false"
+                          onAction="#clickHistorial"
+                          prefHeight="52.0"
+                          maxWidth="1.7976931348623157E308"
+                          style="-fx-background-color: #1F2A44;"
+                          text="Historial de Alumno"
+                          textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="36.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoHistorialAlumno.png" />
                      </image>
                   </ImageView>
                </graphic>

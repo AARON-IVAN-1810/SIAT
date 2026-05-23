@@ -1,46 +1,107 @@
 package application.proyecto.controllers;
 
+import application.proyecto.utils.ConexionBD;
+import application.proyecto.utils.SesionUsuario;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
-import javafx.event.ActionEvent;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class LoginController {
 
-    @FXML
-    private ComboBox<String> cbRol;
-
-    @FXML
-    private TextField txtUsuario;
-
-    @FXML
-    private PasswordField txtContrasena;
+    @FXML private ComboBox<String> cbRol;
+    @FXML private TextField txtUsuario;
+    @FXML private PasswordField txtContrasena;
 
     @FXML
     public void initialize() {
         cbRol.setItems(FXCollections.observableArrayList(
-                "Jefe de Maestros", "Maestro", "Tutor"
+                "Jefe de Maestros",
+                "Maestro",
+                "Tutor"
         ));
     }
 
     @FXML
     private void clikIngresar(ActionEvent event) {
-        String rol = cbRol.getValue();
+        String usuario = txtUsuario.getText() == null ? "" : txtUsuario.getText().trim();
+        String contrasena = txtContrasena.getText() == null ? "" : txtContrasena.getText().trim();
+        String rolSeleccionado = cbRol.getValue();
 
-        if (rol == null) {
-            mostrarAlerta("Selecciona un rol.");
+        if (usuario.isEmpty() || contrasena.isEmpty() || rolSeleccionado == null) {
+            mostrarAlerta("captura usuario, contrasena y rol");
             return;
         }
 
+        String rolBD = convertirRolParaBD(rolSeleccionado);
+
+        String sql = """
+                select
+                u.id_usuario,
+                u.usuario,
+                m.id_maestro,
+                concat(m.nombre,' ',m.apellido_paterno,' ',m.apellido_materno) as maestro,
+                r.nombre as rol
+                from usuario u
+                inner join maestro m on u.id_usuario=m.id_usuario
+                inner join usuario_rol ur on u.id_usuario=ur.id_usuario
+                inner join rol r on ur.id_rol=r.id_rol
+                where u.usuario=?
+                and u.password_hash=?
+                and u.id_estatus_general=1
+                and m.id_estatus_general=1
+                and r.nombre=?
+                limit 1
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, usuario);
+            ps.setString(2, contrasena);
+            ps.setString(3, rolBD);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    SesionUsuario.iniciarSesion(
+                            rs.getInt("id_usuario"),
+                            rs.getInt("id_maestro"),
+                            rs.getString("usuario"),
+                            rs.getString("maestro"),
+                            rs.getString("rol")
+                    );
+
+                    abrirVistaPorRol(rolSeleccionado, event);
+                } else {
+                    mostrarAlerta("usuario, contrasena o rol incorrecto");
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("error al iniciar sesion");
+        }
+    }
+
+    private String convertirRolParaBD(String rolVista) {
+        return switch (rolVista) {
+            case "Jefe de Maestros" -> "jefe de maestros";
+            case "Maestro" -> "maestro";
+            case "Tutor" -> "tutor";
+            default -> "";
+        };
+    }
+
+    private void abrirVistaPorRol(String rol, ActionEvent event) {
         switch (rol) {
             case "Jefe de Maestros":
                 abrirVista("/application/proyecto/views/JefeDeMaestros.fxml", "Panel Jefe de Maestros", event);
@@ -55,7 +116,7 @@ public class LoginController {
                 break;
 
             default:
-                mostrarAlerta("Rol no valido.");
+                mostrarAlerta("rol no valido");
                 break;
         }
     }
@@ -66,26 +127,41 @@ public class LoginController {
             Parent root = loader.load();
 
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-            
+
             Scene scene = new Scene(root);
             stage.setScene(scene);
             stage.setTitle(titulo);
-
-            stage.setFullScreen(false); 
-            
-            stage.show(); 
-
-            stage.setMaximized(true); 
+            stage.setFullScreen(false);
+            stage.show();
+            stage.setMaximized(true);
 
         } catch (IOException e) {
             e.printStackTrace();
-            mostrarAlerta("No se pudo abrir la vista: " + ruta);
+            mostrarAlerta("no se pudo abrir la vista");
+        }
+    }
+
+    @FXML
+    private void handleMostrarRecuperacion() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/application/proyecto/views/RecuperarContrasena.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("Recuperar contrasena");
+            stage.setScene(new Scene(root));
+            stage.setResizable(false);
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("no se pudo abrir la ventana de recuperacion");
         }
     }
 
     private void mostrarAlerta(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Aviso");
+        alert.setTitle("aviso");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();

@@ -42,6 +42,11 @@ public class JefeDeMaestrosController {
     }
 
     @FXML
+    private void selectHistorialAlumnos() {
+        cargarVista("/application/proyecto/views/jefedemaestros/HistorialAlumnoJDM.fxml");
+    }
+
+    @FXML
     private void selectestadisticas() {
         cargarVista("/application/proyecto/views/jefedemaestros/EstadisticasJDM.fxml");
     }

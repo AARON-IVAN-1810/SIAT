@@ -27,12 +27,14 @@ public class TutorController {
     }
     @FXML
     private void ClickReporte() {
-        cargarVista("/application/proyecto/views/tutor/BitacoraT.fxml");
+        cargarVista("/application/proyecto/views/tutor/HistorialAlumnoT.fxml");
     }
     @FXML
     private void selectPerfil() {
-        cargarVista("/application/proyecto/views/maestro/PerfilUsuarioT.fxml");
+        cargarVista("/application/proyecto/views/tutor/PerfilUsuarioT.fxml");
     }
+    @FXML
+    private void ClickGestionReportes() {cargarVista("/application/proyecto/views/tutor/GestionDeReportesT.fxml");}
 
 
 

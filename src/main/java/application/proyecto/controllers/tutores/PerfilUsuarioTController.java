@@ -41,6 +41,10 @@ public class PerfilUsuarioTController extends BaseController {
 
     private void configurarPreguntas() {
         cbPregunta1.setItems(FXCollections.observableArrayList(
+                "color favorito",
+                "pelicula favorita",
+                "primera mascota",
+                "comida favorita",
                 "cual es tu pelicula favorita",
                 "cual es tu color favorito",
                 "cual fue tu primera mascota",
@@ -48,11 +52,19 @@ public class PerfilUsuarioTController extends BaseController {
         ));
 
         cbPregunta2.setItems(FXCollections.observableArrayList(
+                "color favorito",
+                "pelicula favorita",
+                "primera mascota",
+                "comida favorita",
                 "cual es tu pelicula favorita",
                 "cual es tu color favorito",
                 "cual fue tu primera mascota",
                 "cual es tu comida favorita"
         ));
+
+        if (txtNumEmpleado != null) {
+            txtNumEmpleado.setEditable(false);
+        }
     }
 
     private void cargarPerfil() {
@@ -92,20 +104,23 @@ public class PerfilUsuarioTController extends BaseController {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    txtNombre.setText(rs.getString("nombre"));
-                    txtApellidoPaterno.setText(rs.getString("apellido_paterno"));
-                    txtApellidoMaterno.setText(rs.getString("apellido_materno"));
-                    txtNumEmpleado.setText(rs.getString("num_empleado"));
-                    txtCorreo.setText(rs.getString("correo"));
-                    txtTelefono.setText(rs.getString("telefono"));
+                    txtNombre.setText(texto(rs.getString("nombre")));
+                    txtApellidoPaterno.setText(texto(rs.getString("apellido_paterno")));
+                    txtApellidoMaterno.setText(texto(rs.getString("apellido_materno")));
+                    txtNumEmpleado.setText(texto(rs.getString("num_empleado")));
+                    txtCorreo.setText(texto(rs.getString("correo")));
+                    txtTelefono.setText(texto(rs.getString("telefono")));
 
-                    passwordActual = rs.getString("password_hash") == null ? "" : rs.getString("password_hash");
+                    passwordActual = texto(rs.getString("password_hash"));
 
-                    cbPregunta1.setValue(rs.getString("pregunta_1"));
-                    txtRespuesta1.setText(rs.getString("respuesta_1"));
+                    String pregunta1 = texto(rs.getString("pregunta_1"));
+                    String pregunta2 = texto(rs.getString("pregunta_2"));
 
-                    cbPregunta2.setValue(rs.getString("pregunta_2"));
-                    txtRespuesta2.setText(rs.getString("respuesta_2"));
+                    cbPregunta1.setValue(pregunta1.isEmpty() ? null : pregunta1);
+                    cbPregunta2.setValue(pregunta2.isEmpty() ? null : pregunta2);
+
+                    txtRespuesta1.setText(texto(rs.getString("respuesta_1")));
+                    txtRespuesta2.setText(texto(rs.getString("respuesta_2")));
                 } else {
                     mostrarError("no se encontro informacion del usuario actual");
                 }
@@ -119,10 +134,11 @@ public class PerfilUsuarioTController extends BaseController {
 
     @FXML
     private void handleGuardarDatos() {
-        String nombre = txtNombre.getText() == null ? "" : txtNombre.getText().trim();
-        String apellidoPaterno = txtApellidoPaterno.getText() == null ? "" : txtApellidoPaterno.getText().trim();
-        String apellidoMaterno = txtApellidoMaterno.getText() == null ? "" : txtApellidoMaterno.getText().trim();
-        String telefono = txtTelefono.getText() == null ? "" : txtTelefono.getText().trim();
+        String nombre = obtenerTexto(txtNombre);
+        String apellidoPaterno = obtenerTexto(txtApellidoPaterno);
+        String apellidoMaterno = obtenerTexto(txtApellidoMaterno);
+        String correo = obtenerTexto(txtCorreo).toLowerCase();
+        String telefono = obtenerTexto(txtTelefono);
 
         if (idMaestroActual == 0) {
             mostrarError("no hay maestro cargado");
@@ -134,11 +150,17 @@ public class PerfilUsuarioTController extends BaseController {
             return;
         }
 
+        if (!correo.isEmpty() && !correo.contains("@")) {
+            mostrarError("captura un correo valido");
+            return;
+        }
+
         String sql = """
                 update maestro
                 set nombre=?,
                 apellido_paterno=?,
                 apellido_materno=?,
+                correo=?,
                 telefono=?
                 where id_maestro=?
                 """;
@@ -149,12 +171,14 @@ public class PerfilUsuarioTController extends BaseController {
             ps.setString(1, nombre);
             ps.setString(2, apellidoPaterno);
             ps.setString(3, apellidoMaterno);
-            ps.setString(4, telefono);
-            ps.setInt(5, idMaestroActual);
+            ps.setString(4, correo);
+            ps.setString(5, telefono);
+            ps.setInt(6, idMaestroActual);
 
             ps.executeUpdate();
 
             mostrarInfo("datos personales actualizados correctamente");
+            cargarPerfil();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -164,9 +188,9 @@ public class PerfilUsuarioTController extends BaseController {
 
     @FXML
     private void handleCambiarContrasena() {
-        String actual = txtActual.getText() == null ? "" : txtActual.getText().trim();
-        String nueva = txtNueva.getText() == null ? "" : txtNueva.getText().trim();
-        String confirmar = txtConfirmar.getText() == null ? "" : txtConfirmar.getText().trim();
+        String actual = obtenerTexto(txtActual);
+        String nueva = obtenerTexto(txtNueva);
+        String confirmar = obtenerTexto(txtConfirmar);
 
         if (idUsuarioActual == 0) {
             mostrarError("no hay usuario cargado");
@@ -204,6 +228,7 @@ public class PerfilUsuarioTController extends BaseController {
 
             ps.setString(1, nueva);
             ps.setInt(2, idUsuarioActual);
+
             ps.executeUpdate();
 
             passwordActual = nueva;
@@ -224,8 +249,8 @@ public class PerfilUsuarioTController extends BaseController {
     private void handleGuardarPreguntas() {
         String pregunta1 = cbPregunta1.getValue();
         String pregunta2 = cbPregunta2.getValue();
-        String respuesta1 = txtRespuesta1.getText() == null ? "" : txtRespuesta1.getText().trim().toLowerCase();
-        String respuesta2 = txtRespuesta2.getText() == null ? "" : txtRespuesta2.getText().trim().toLowerCase();
+        String respuesta1 = obtenerTexto(txtRespuesta1).toLowerCase();
+        String respuesta2 = obtenerTexto(txtRespuesta2).toLowerCase();
 
         if (idUsuarioActual == 0) {
             mostrarError("no hay usuario cargado");
@@ -263,11 +288,24 @@ public class PerfilUsuarioTController extends BaseController {
             ps.executeUpdate();
 
             mostrarInfo("preguntas de recuperacion guardadas correctamente");
+            cargarPerfil();
 
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al guardar preguntas");
         }
+    }
+
+    private String texto(String valor) {
+        return valor == null ? "" : valor;
+    }
+
+    private String obtenerTexto(TextInputControl campo) {
+        if (campo == null || campo.getText() == null) {
+            return "";
+        }
+
+        return campo.getText().trim();
     }
 
     private void mostrarError(String mensaje) {

@@ -14,23 +14,16 @@
 <?import javafx.scene.shape.Line?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefWidth="1000.0" prefHeight="650.0"
-            xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="application.proyecto.controllers.MaestroController"
-            style="-fx-background-color: #e5e8f2;">
+<BorderPane prefHeight="650.0" prefWidth="1000.0" style="-fx-background-color: #e5e8f2;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.proyecto.controllers.MaestroController">
 
    <left>
-      <VBox prefWidth="240.0"
-            spacing="10.0"
-            style="-fx-background-color: #1F2A44;"
-            BorderPane.alignment="CENTER">
+      <VBox prefWidth="240.0" spacing="10.0" style="-fx-background-color: #1F2A44;" BorderPane.alignment="CENTER">
          <padding>
-            <Insets top="12.0" right="12.0" bottom="12.0" left="12.0" />
+            <Insets bottom="12.0" left="12.0" right="12.0" top="12.0" />
          </padding>
 
          <children>
-            <AnchorPane prefHeight="90.0" minHeight="90.0" maxHeight="90.0">
+            <AnchorPane maxHeight="90.0" minHeight="90.0" prefHeight="90.0">
                <children>
                   <ImageView fitHeight="80.0" fitWidth="72.0" layoutX="-2.0" layoutY="-2.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -54,15 +47,7 @@
 
             <Line endX="210.0" stroke="WHITE" strokeWidth="3.0" />
 
-            <ToggleButton fx:id="btnInicio"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickInicio"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Inicio"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnInicio" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickInicio" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Inicio" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="37.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -75,15 +60,20 @@
                </font>
             </ToggleButton>
 
-            <ToggleButton fx:id="btnAsistencia"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickAsistencia"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Asistencia"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnlinks" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectLinks" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Links de Clases" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="37.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoQR.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <font>
+                  <Font name="Arial" size="13.0" />
+               </font>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnAsistencia" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickAsistencia" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Asistencia" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="42.0" fitWidth="33.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -96,15 +86,7 @@
                </font>
             </ToggleButton>
 
-            <ToggleButton fx:id="btnCalificacion"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickCalificacion"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Actividades"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnCalificacion" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickCalificacion" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Actividades" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="35.0" fitWidth="37.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -117,15 +99,7 @@
                </font>
             </ToggleButton>
 
-            <ToggleButton fx:id="btnConducta"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickConducta"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Alertas"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnConducta" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickConducta" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Alertas" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="36.0" fitWidth="43.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -138,15 +112,7 @@
                </font>
             </ToggleButton>
 
-            <ToggleButton fx:id="btnReportes"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickReportes"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Reportes"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnReportes" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickReportes" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Reportes" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="36.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -160,15 +126,7 @@
             </ToggleButton>
 
 
-            <ToggleButton fx:id="btnHistorial"
-                          alignment="CENTER_LEFT"
-                          mnemonicParsing="false"
-                          onAction="#clickHistorial"
-                          prefHeight="52.0"
-                          maxWidth="1.7976931348623157E308"
-                          style="-fx-background-color: #1F2A44;"
-                          text="Historial de Alumno"
-                          textFill="WHITE">
+            <ToggleButton fx:id="btnHistorial" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#clickHistorial" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Historial de Alumno" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="36.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -202,18 +160,11 @@
    <center>
       <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
          <children>
-            <ScrollPane fitToWidth="true"
-                        fitToHeight="true"
-                        hbarPolicy="NEVER"
-                        vbarPolicy="AS_NEEDED"
-                        style="-fx-background-color: #e5e8f2; -fx-background: #e5e8f2;">
+            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: #e5e8f2; -fx-background: #e5e8f2;" vbarPolicy="AS_NEEDED">
                <content>
                   <StackPane minHeight="600.0" style="-fx-background-color: #e5e8f2;">
                      <children>
-                        <ImageView fitHeight="350.0"
-                                   fitWidth="350.0"
-                                   pickOnBounds="true"
-                                   preserveRatio="true">
+                        <ImageView fitHeight="350.0" fitWidth="350.0" pickOnBounds="true" preserveRatio="true">
                            <image>
                               <Image url="@../fotos/LOGO.png" />
                            </image>

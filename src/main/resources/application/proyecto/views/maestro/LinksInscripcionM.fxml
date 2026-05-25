@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane fx:controller="application.proyecto.controllers.maestros.LinksInscripcionMController"
+            prefWidth="900.0" prefHeight="650.0"
+            xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            style="-fx-background-color: #f4f6fb;">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12.0" prefHeight="50.0" style="-fx-background-color: #ffffff;">
+            <padding>
+                <Insets top="8.0" right="14.0" bottom="8.0" left="14.0"/>
+            </padding>
+
+            <Label text="Links de Inscripcion">
+                <font>
+                    <Font name="Arial Black" size="17.0"/>
+                </font>
+            </Label>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <HBox alignment="CENTER_LEFT" spacing="6.0">
+                <ImageView fitHeight="22.0" fitWidth="22.0" preserveRatio="true">
+                    <image>
+                        <Image url="@../../fotos/IconoSalir.png"/>
+                    </image>
+                </ImageView>
+
+                <Button text="Cerrar Sesion"
+                        onAction="#handleLogout"
+                        style="-fx-background-color: transparent; -fx-cursor: hand;">
+                    <font>
+                        <Font name="Arial Black" size="12.0"/>
+                    </font>
+                </Button>
+            </HBox>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <content>
+                <VBox spacing="18.0" style="-fx-background-color: #f4f6fb;">
+                    <padding>
+                        <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                    </padding>
+
+                    <VBox spacing="4.0">
+                        <Label text="Links de Inscripcion"
+                               style="-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+                        <Label text="Genera formularios web para que tus alumnos se inscriban a tus clases."
+                               style="-fx-font-size: 16px; -fx-text-fill: #6b7280;"/>
+                    </VBox>
+
+                    <HBox spacing="14.0">
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS"
+                              style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                            <padding>
+                                <Insets top="14.0" right="16.0" bottom="14.0" left="16.0"/>
+                            </padding>
+                            <Label text="Mis clases" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblTotalClases" text="0"
+                                   style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+                        </VBox>
+
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS"
+                              style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                            <padding>
+                                <Insets top="14.0" right="16.0" bottom="14.0" left="16.0"/>
+                            </padding>
+                            <Label text="Links abiertos" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblLinksAbiertos" text="0"
+                                   style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+                        </VBox>
+
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS"
+                              style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                            <padding>
+                                <Insets top="14.0" right="16.0" bottom="14.0" left="16.0"/>
+                            </padding>
+                            <Label text="Links cerrados" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblLinksCerrados" text="0"
+                                   style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+                        </VBox>
+
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS"
+                              style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                            <padding>
+                                <Insets top="14.0" right="16.0" bottom="14.0" left="16.0"/>
+                            </padding>
+                            <Label text="Total inscritos" style="-fx-font-size: 13px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblTotalInscritos" text="0"
+                                   style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="20.0" VBox.vgrow="ALWAYS">
+
+                        <VBox prefWidth="330.0"
+                              spacing="12.0"
+                              style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                            <padding>
+                                <Insets top="18.0" right="16.0" bottom="16.0" left="16.0"/>
+                            </padding>
+
+                            <Label text="Generar link"
+                                   style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+
+                            <Label text="Clase" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <ComboBox fx:id="cbClase"
+                                      promptText="Selecciona una de tus clases"
+                                      prefHeight="38.0"
+                                      maxWidth="1.7976931348623157E308"/>
+
+                            <Label text="Fecha limite" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <DatePicker fx:id="dpFechaLimite"
+                                        promptText="Opcional"
+                                        prefHeight="38.0"
+                                        maxWidth="1.7976931348623157E308"/>
+
+                            <Label text="Maximo de inscripciones" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <TextField fx:id="txtMaxInscripciones"
+                                       promptText="Opcional"
+                                       prefHeight="38.0"
+                                       style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;"/>
+
+                            <Label text="URL base" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <TextField fx:id="txtUrlBase"
+                                       promptText="http://192.168.1.50/siat"
+                                       prefHeight="38.0"
+                                       style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;"/>
+
+                            <Label text="Notas" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <TextArea fx:id="txtNotas"
+                                      promptText="Notas internas del link"
+                                      prefRowCount="4"
+                                      wrapText="true"
+                                      style="-fx-background-color: #eef3fb; -fx-background-radius: 8; -fx-border-radius: 8;"/>
+
+                            <Button fx:id="btnGenerarLink"
+                                    text="Generar link"
+                                    onAction="#handleGenerarLink"
+                                    prefHeight="40.0"
+                                    maxWidth="1.7976931348623157E308"
+                                    style="-fx-background-color: #1d5bd6; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;"/>
+
+                            <Button fx:id="btnLimpiarFormulario"
+                                    text="Limpiar formulario"
+                                    onAction="#handleLimpiarFormulario"
+                                    prefHeight="38.0"
+                                    maxWidth="1.7976931348623157E308"
+                                    style="-fx-background-color: linear-gradient(to right, #6f7bc7, #5f6ebb); -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"/>
+
+                            <Separator/>
+
+                            <Label text="Detalle del link"
+                                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+
+                            <Label text="Clase" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblDetalleClase" text="Selecciona un link" wrapText="true"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #111827;"/>
+
+                            <Label text="Token" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblDetalleToken" text="---" wrapText="true"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #111827;"/>
+
+                            <Label text="Link completo" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <TextArea fx:id="txtLinkCompleto"
+                                      editable="false"
+                                      wrapText="true"
+                                      prefRowCount="3"
+                                      style="-fx-background-color: #f4f6fb; -fx-background-radius: 8; -fx-border-radius: 8;"/>
+
+                            <GridPane hgap="8.0" vgap="8.0">
+                                <Button fx:id="btnCopiarLink"
+                                        text="Copiar"
+                                        onAction="#handleCopiarLink"
+                                        prefHeight="36.0"
+                                        maxWidth="1.7976931348623157E308"
+                                        style="-fx-background-color: #6ea8e5; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"
+                                        GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+
+                                <Button fx:id="btnVerQr"
+                                        text="Ver QR"
+                                        onAction="#handleVerQr"
+                                        prefHeight="36.0"
+                                        maxWidth="1.7976931348623157E308"
+                                        style="-fx-background-color: #6ea8e5; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"
+                                        GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                <Button fx:id="btnCerrarLink"
+                                        text="Cerrar"
+                                        onAction="#handleCerrarLink"
+                                        prefHeight="36.0"
+                                        maxWidth="1.7976931348623157E308"
+                                        style="-fx-background-color: linear-gradient(to right, #7762d9, #6956cc); -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"
+                                        GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+
+                                <Button fx:id="btnReactivarLink"
+                                        text="Reactivar"
+                                        onAction="#handleReactivarLink"
+                                        prefHeight="36.0"
+                                        maxWidth="1.7976931348623157E308"
+                                        style="-fx-background-color: #1d5bd6; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"
+                                        GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                <columnConstraints>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                </columnConstraints>
+                            </GridPane>
+
+                            <Button fx:id="btnVerInscritos"
+                                    text="Ver alumnos inscritos"
+                                    onAction="#handleVerInscritos"
+                                    prefHeight="36.0"
+                                    maxWidth="1.7976931348623157E308"
+                                    style="-fx-background-color: #e5e7eb; -fx-text-fill: #374151; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"/>
+
+                            <VBox alignment="CENTER" spacing="6.0">
+                                <ImageView fx:id="imgQr"
+                                           fitWidth="160.0"
+                                           fitHeight="160.0"
+                                           preserveRatio="true"/>
+                                <Label fx:id="lblQrMensaje"
+                                       text="El QR aparecera aqui."
+                                       wrapText="true"
+                                       style="-fx-font-size: 11px; -fx-text-fill: #6b7280;"/>
+                            </VBox>
+
+                            <Label text="Fechas" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblDetalleFechas" text="---" wrapText="true"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #111827;"/>
+
+                            <Label text="Inscripciones" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblDetalleInscritos" text="---"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #111827;"/>
+
+                            <Label text="Estado" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <Label fx:id="lblDetalleEstado" text="---"
+                                   style="-fx-font-size: 12px; -fx-text-fill: #111827;"/>
+
+                            <Label text="Notas" style="-fx-font-size: 12px; -fx-text-fill: #6b7280;"/>
+                            <TextArea fx:id="txtDetalleNotas"
+                                      editable="false"
+                                      wrapText="true"
+                                      prefRowCount="3"
+                                      style="-fx-background-color: #f4f6fb; -fx-background-radius: 8; -fx-border-radius: 8;"/>
+                        </VBox>
+
+                        <VBox spacing="10.0" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent;">
+
+                            <Label text="Mis links generados"
+                                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #111827;"/>
+
+                            <VBox VBox.vgrow="ALWAYS"
+                                  spacing="12.0"
+                                  style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-color: #e5e7eb;">
+                                <padding>
+                                    <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
+                                </padding>
+
+                                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                    <HBox alignment="CENTER_LEFT"
+                                          spacing="8.0"
+                                          style="-fx-background-color: #f4f6fb; -fx-background-radius: 10;"
+                                          HBox.hgrow="ALWAYS">
+                                        <padding>
+                                            <Insets top="0.0" right="12.0" bottom="0.0" left="12.0"/>
+                                        </padding>
+
+                                        <ImageView fitHeight="16.0" fitWidth="16.0" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../../fotos/IconoLupa.png"/>
+                                            </image>
+                                        </ImageView>
+
+                                        <TextField fx:id="txtBuscar"
+                                                   promptText="Buscar por materia, clave, grupo o token..."
+                                                   style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;"
+                                                   HBox.hgrow="ALWAYS"/>
+                                    </HBox>
+
+                                    <Button fx:id="btnActualizar"
+                                            text="Actualizar"
+                                            onAction="#handleActualizar"
+                                            prefHeight="38.0"
+                                            style="-fx-background-color: #6ea8e5; -fx-text-fill: white; -fx-font-size: 12px; -fx-background-radius: 8; -fx-cursor: hand;"/>
+                                </HBox>
+
+                                <GridPane hgap="10.0" vgap="10.0">
+                                    <ComboBox fx:id="cbClaseFiltro"
+                                              promptText="Clase"
+                                              prefHeight="38.0"
+                                              maxWidth="1.7976931348623157E308"
+                                              GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+
+                                    <ComboBox fx:id="cbCicloFiltro"
+                                              promptText="Ciclo"
+                                              prefHeight="38.0"
+                                              maxWidth="1.7976931348623157E308"
+                                              GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                    <ComboBox fx:id="cbEstadoFiltro"
+                                              promptText="Estado"
+                                              prefHeight="38.0"
+                                              maxWidth="1.7976931348623157E308"
+                                              GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+
+                                    <ComboBox fx:id="cbOrigenFiltro"
+                                              promptText="Origen"
+                                              prefHeight="38.0"
+                                              maxWidth="1.7976931348623157E308"
+                                              GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+
+                                    <columnConstraints>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                    </columnConstraints>
+                                </GridPane>
+
+                                <TableView fx:id="tablaLinks"
+                                           VBox.vgrow="ALWAYS"
+                                           prefHeight="520.0">
+                                    <columns>
+                                        <TableColumn fx:id="colMateria" text="Materia" prefWidth="190.0"/>
+                                        <TableColumn fx:id="colClave" text="Clave" prefWidth="85.0"/>
+                                        <TableColumn fx:id="colGrupo" text="Grupo" prefWidth="80.0"/>
+                                        <TableColumn fx:id="colTurno" text="Turno" prefWidth="95.0"/>
+                                        <TableColumn fx:id="colCiclo" text="Ciclo" prefWidth="105.0"/>
+                                        <TableColumn fx:id="colFechaLimite" text="Fecha limite" prefWidth="115.0"/>
+                                        <TableColumn fx:id="colInscritos" text="Inscritos" prefWidth="85.0"/>
+                                        <TableColumn fx:id="colEstado" text="Estado" prefWidth="95.0"/>
+                                    </columns>
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                    </columnResizePolicy>
+                                </TableView>
+                            </VBox>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

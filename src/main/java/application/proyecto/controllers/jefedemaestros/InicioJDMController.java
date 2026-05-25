@@ -56,19 +56,38 @@ public class InicioJDMController extends BaseController {
         cmbFiltroAlertas.setItems(FXCollections.observableArrayList(
                 "todas",
                 "pendiente",
+                "seguimiento",
                 "cerrada"
         ));
+
         cmbFiltroAlertas.setValue("todas");
     }
 
     private void cargarMetricas() {
         String sql = """
                 select
-                fn_total_alumnos() as total_alumnos,
-                fn_total_alertas_rojas_activas() as alertas_rojas,
-                fn_total_alertas_amarillas_activas() as alertas_medias,
-                fn_total_grupos() as total_grupos,
-                fn_total_maestros() as total_maestros
+                (select count(*)
+                 from alumno
+                 where id_estatus_general=1) as total_alumnos,
+
+                (select count(*)
+                 from alerta
+                 where id_estatus_alerta in(1,2)) as alertas_activas,
+
+                (select count(*)
+                 from alerta
+                 where id_estatus_alerta in(1,2)
+                 and id_prioridad_alerta=2) as riesgo_bajo,
+
+                (select count(*)
+                 from grupo_ciclo gc
+                 inner join grupo g on gc.id_grupo=g.id_grupo
+                 where gc.id_estatus_general=1
+                 and g.id_estatus_general=1) as total_grupos,
+
+                (select count(*)
+                 from maestro
+                 where id_estatus_general=1) as total_maestros
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -76,12 +95,9 @@ public class InicioJDMController extends BaseController {
              ResultSet rs = ps.executeQuery()) {
 
             if (rs.next()) {
-                int rojas = rs.getInt("alertas_rojas");
-                int medias = rs.getInt("alertas_medias");
-
                 lblTotalAlumnos.setText(String.valueOf(rs.getInt("total_alumnos")));
-                lblAlertasActivas.setText(String.valueOf(rojas + medias));
-                lblRiesgoBajo.setText(String.valueOf(medias));
+                lblAlertasActivas.setText(String.valueOf(rs.getInt("alertas_activas")));
+                lblRiesgoBajo.setText(String.valueOf(rs.getInt("riesgo_bajo")));
                 lblTotalGrupos.setText(String.valueOf(rs.getInt("total_grupos")));
                 lblTotalMaestros.setText(String.valueOf(rs.getInt("total_maestros")));
             }
@@ -98,28 +114,36 @@ public class InicioJDMController extends BaseController {
         String sql = """
                 select
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as nombre_alumno,
-                g.nombre as grupo,
-                m.nombre as materia,
-                ifnull(round((
-                    sum(case when ae.entrego=1 then 1 else 0 end) / nullif(count(ae.id_actividad_entrega),0)
+                coalesce(concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre),'sin clase') as grupo,
+                coalesce(concat(m.nombre,' (',m.clave,')'),'sin materia') as materia,
+
+                coalesce(round((
+                    sum(case when ae.entrego=1 then 1 else 0 end) /
+                    nullif(count(distinct act.id_actividad),0)
                 ) * 100,2),0) as porcentaje_entrega,
-                ifnull(round((
+
+                coalesce(round((
                     select
-                    (sum(case when ad.id_estado_asistencia=0 then 1 else 0 end) / nullif(count(*),0)) * 100
+                    (sum(case when ad.id_estado_asistencia=0 then 1 else 0 end) /
+                    nullif(count(*),0)) * 100
                     from asistencia_detalle ad
                     inner join asistencia_sesion s on ad.id_asistencia_sesion=s.id_asistencia_sesion
                     where ad.id_alumno=al.id_alumno
                     and s.id_carga=c.id_carga
                 ),2),0) as porcentaje_faltas,
+
                 cea.nombre as estatus
                 from alerta a
                 inner join alumno al on a.id_alumno=al.id_alumno
-                inner join carga c on a.id_carga=c.id_carga
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join materia m on c.id_materia=m.id_materia
+                left join carga c on a.id_carga=c.id_carga
+                left join materia m on c.id_materia=m.id_materia
+                left join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                left join grupo g on gc.id_grupo=g.id_grupo
+                left join cat_turno ct on g.id_turno=ct.id_turno
+                left join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
                 left join actividad act on act.id_carga=c.id_carga
+                and act.id_estatus_general=1
                 left join actividad_entrega ae on ae.id_actividad=act.id_actividad
                 and ae.id_alumno=al.id_alumno
                 group by
@@ -129,7 +153,10 @@ public class InicioJDMController extends BaseController {
                 al.apellido_paterno,
                 al.apellido_materno,
                 g.nombre,
+                ct.nombre,
+                ce.nombre,
                 m.nombre,
+                m.clave,
                 c.id_carga,
                 cea.nombre,
                 a.creada_en
@@ -175,7 +202,8 @@ public class InicioJDMController extends BaseController {
             boolean coincideTexto =
                     alerta.getNombreAlumno().toLowerCase().contains(texto) ||
                             alerta.getGrupo().toLowerCase().contains(texto) ||
-                            alerta.getMateria().toLowerCase().contains(texto);
+                            alerta.getMateria().toLowerCase().contains(texto) ||
+                            alerta.getEstatus().toLowerCase().contains(texto);
 
             boolean coincideEstatus =
                     estatus.equals("todas") ||

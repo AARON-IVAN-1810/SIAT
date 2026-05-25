@@ -66,12 +66,61 @@ public class GestionDeAlertasTController extends BaseController {
         return SesionUsuario.getIdMaestro();
     }
 
+    private <S> void configurarColumnaPrioridad(TableColumn<S, String> columna) {
+        columna.setCellFactory(tc -> new TableCell<S, String>() {
+            @Override
+            protected void updateItem(String prioridad, boolean empty) {
+                super.updateItem(prioridad, empty);
+
+                if (empty || prioridad == null || prioridad.trim().isEmpty()) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                String valor = prioridad.toLowerCase().trim();
+                setText(prioridad);
+
+                if (valor.contains("alta")) {
+                    setStyle("""
+                        -fx-background-color: #fee2e2;
+                        -fx-text-fill: #991b1b;
+                        -fx-font-weight: bold;
+                        -fx-alignment: center;
+                        """);
+                } else if (valor.contains("media")) {
+                    setStyle("""
+                        -fx-background-color: #fef3c7;
+                        -fx-text-fill: #92400e;
+                        -fx-font-weight: bold;
+                        -fx-alignment: center;
+                        """);
+                } else if (valor.contains("baja")) {
+                    setStyle("""
+                        -fx-background-color: #dcfce7;
+                        -fx-text-fill: #166534;
+                        -fx-font-weight: bold;
+                        -fx-alignment: center;
+                        """);
+                } else {
+                    setStyle("""
+                        -fx-background-color: transparent;
+                        -fx-text-fill: #111827;
+                        -fx-alignment: center;
+                        """);
+                }
+            }
+        });
+    }
+
     private void configurarTabla() {
         colAlumno.setCellValueFactory(new PropertyValueFactory<>("alumno"));
         colGrupo.setCellValueFactory(new PropertyValueFactory<>("grupo"));
         colMateria.setCellValueFactory(new PropertyValueFactory<>("materia"));
         colTipoAlerta.setCellValueFactory(new PropertyValueFactory<>("tipoAlerta"));
         colPrioridad.setCellValueFactory(new PropertyValueFactory<>("prioridad"));
+        colPrioridad.setCellValueFactory(new PropertyValueFactory<>("prioridad"));
+        configurarColumnaPrioridad(colPrioridad);
         colEstatus.setCellValueFactory(new PropertyValueFactory<>("estatus"));
 
         listaFiltrada = new FilteredList<>(listaAlertas, p -> true);
@@ -114,20 +163,32 @@ public class GestionDeAlertasTController extends BaseController {
         cmbGrupoFiltro.getItems().clear();
         cmbGrupoFiltro.getItems().add("todos");
 
+        int idTutor = getIdTutorActual();
+
+        if (idTutor == 0) {
+            mostrarError("no hay tutor en sesion");
+            return;
+        }
+
         String sql = """
-                select distinct g.nombre as grupo
+                select distinct
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
                 from tutoria_asignacion ta
                 inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by g.nombre
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                order by grupo
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdTutorActual());
+            ps.setInt(1, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -146,46 +207,61 @@ public class GestionDeAlertasTController extends BaseController {
     private void cargarAlertas() {
         listaAlertas.clear();
 
+        int idTutor = getIdTutorActual();
+
+        if (idTutor == 0) {
+            mostrarError("no hay tutor en sesion");
+            return;
+        }
+
         String sql = """
-                select
+                select distinct
                 a.id_alerta,
+                a.id_carga,
                 al.id_alumno,
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
-                g.nombre as grupo,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
                 g.semestre,
                 ct.nombre as turno,
-                ifnull(m.nombre,'sin materia') as materia,
+                concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as tipo_alerta,
                 cpa.nombre as prioridad,
-                a.motivo as motivo_detalle,
+                ifnull(a.motivo,'sin motivo') as motivo_detalle,
                 cea.nombre as estatus,
+                a.creada_en as fecha_orden,
                 date_format(a.creada_en,'%Y-%m-%d') as fecha
                 from tutoria_asignacion ta
-                inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join alumno al on al.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join alerta a on a.id_alumno=al.id_alumno
-                left join carga c on a.id_carga=c.id_carga
-                left join materia m on c.id_materia=m.id_materia
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join alerta a on c.id_carga=a.id_carga
+                inner join alumno al on a.id_alumno=al.id_alumno
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_prioridad_alerta cpa on a.id_prioridad_alerta=cpa.id_prioridad_alerta
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by a.creada_en desc
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                and al.id_estatus_general=1
+                order by fecha_orden desc
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdTutorActual());
+            ps.setInt(1, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     listaAlertas.add(new AlertaTutor(
                             rs.getInt("id_alerta"),
+                            rs.getInt("id_carga"),
                             rs.getInt("id_alumno"),
                             rs.getString("num_control"),
                             rs.getString("alumno"),
@@ -202,6 +278,8 @@ public class GestionDeAlertasTController extends BaseController {
                 }
             }
 
+            aplicarFiltro();
+
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al cargar alertas");
@@ -209,17 +287,32 @@ public class GestionDeAlertasTController extends BaseController {
     }
 
     private void aplicarFiltro() {
-        String grupo = cmbGrupoFiltro.getValue() == null ? "todos" : cmbGrupoFiltro.getValue().toLowerCase();
-        String tipo = cmbTipoFiltro.getValue() == null ? "todos" : cmbTipoFiltro.getValue().toLowerCase();
-        String estatusFiltro = cmbEstatusFiltro.getValue() == null ? "todos" : cmbEstatusFiltro.getValue().toLowerCase();
-        String texto = txtBuscarTabla.getText() == null ? "" : txtBuscarTabla.getText().toLowerCase();
+        if (listaFiltrada == null) {
+            return;
+        }
+
+        String grupo = cmbGrupoFiltro.getValue() == null ? "todos" : cmbGrupoFiltro.getValue().toLowerCase().trim();
+        String tipo = cmbTipoFiltro.getValue() == null ? "todos" : cmbTipoFiltro.getValue().toLowerCase().trim();
+        String estatusFiltro = cmbEstatusFiltro.getValue() == null ? "todos" : cmbEstatusFiltro.getValue().toLowerCase().trim();
+        String texto = txtBuscarTabla.getText() == null ? "" : txtBuscarTabla.getText().toLowerCase().trim();
 
         listaFiltrada.setPredicate(alerta -> {
-            boolean coincideGrupo = grupo.equals("todos") || alerta.getGrupo().toLowerCase().equals(grupo);
+            boolean coincideGrupo =
+                    grupo.equals("todos") ||
+                            alerta.getGrupo().toLowerCase().contains(grupo);
 
-            boolean coincideTipo = tipo.equals("todos") || alerta.getTipoAlerta().toLowerCase().equals(tipo);
+            String tipoAlerta = alerta.getTipoAlerta().toLowerCase();
+
+            boolean coincideTipo =
+                    tipo.equals("todos") ||
+                            tipoAlerta.equals(tipo) ||
+                            (tipo.equals("actividad") && tipoAlerta.equals("calificacion")) ||
+                            (tipo.equals("calificacion") && tipoAlerta.equals("actividad"));
 
             boolean coincideEstatus = switch (estatusFiltro) {
+                case "pendiente" -> alerta.getEstatus().equalsIgnoreCase("pendiente");
+                case "seguimiento" -> alerta.getEstatus().equalsIgnoreCase("seguimiento");
+                case "cerrada" -> alerta.getEstatus().equalsIgnoreCase("cerrada");
                 case "activa" -> alerta.getEstatus().equalsIgnoreCase("pendiente") ||
                         alerta.getEstatus().equalsIgnoreCase("seguimiento");
                 case "inactiva" -> alerta.getEstatus().equalsIgnoreCase("cerrada");
@@ -227,10 +320,14 @@ public class GestionDeAlertasTController extends BaseController {
             };
 
             boolean coincideTexto =
-                    alerta.getAlumno().toLowerCase().contains(texto) ||
+                    texto.isEmpty() ||
+                            alerta.getAlumno().toLowerCase().contains(texto) ||
                             alerta.getNumControl().toLowerCase().contains(texto) ||
+                            alerta.getGrupo().toLowerCase().contains(texto) ||
                             alerta.getMateria().toLowerCase().contains(texto) ||
+                            alerta.getTipoAlerta().toLowerCase().contains(texto) ||
                             alerta.getPrioridad().toLowerCase().contains(texto) ||
+                            alerta.getEstatus().toLowerCase().contains(texto) ||
                             alerta.getFecha().toLowerCase().contains(texto);
 
             return coincideGrupo && coincideTipo && coincideEstatus && coincideTexto;
@@ -360,10 +457,15 @@ public class GestionDeAlertasTController extends BaseController {
         };
 
         String sql = """
-                update alerta
-                set id_estatus_alerta=?,
-                cerrada_en=case when ?=0 then now() else null end
-                where id_alerta=?
+                update alerta a
+                inner join carga c on a.id_carga=c.id_carga
+                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
+                set
+                a.id_estatus_alerta=?,
+                a.cerrada_en=case when ?=0 then now() else null end
+                where a.id_alerta=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -372,11 +474,14 @@ public class GestionDeAlertasTController extends BaseController {
             ps.setInt(1, idEstatus);
             ps.setInt(2, idEstatus);
             ps.setInt(3, alertaSeleccionada.getIdAlerta());
+            ps.setInt(4, getIdTutorActual());
+
             ps.executeUpdate();
 
             mostrarInfo("estatus actualizado correctamente");
             cargarAlertas();
             limpiarDetalle();
+            alertaSeleccionada = null;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -402,6 +507,7 @@ public class GestionDeAlertasTController extends BaseController {
 
     public static class AlertaTutor {
         private final int idAlerta;
+        private final int idCarga;
         private final int idAlumno;
         private final String numControl;
         private final String alumno;
@@ -415,35 +521,82 @@ public class GestionDeAlertasTController extends BaseController {
         private final String estatus;
         private final String fecha;
 
-        public AlertaTutor(int idAlerta, int idAlumno, String numControl, String alumno, String grupo, String semestre, String turno,
+        public AlertaTutor(int idAlerta, int idCarga, int idAlumno, String numControl, String alumno, String grupo, String semestre, String turno,
                            String materia, String tipoAlerta, String prioridad, String motivoDetalle, String estatus, String fecha) {
             this.idAlerta = idAlerta;
+            this.idCarga = idCarga;
             this.idAlumno = idAlumno;
-            this.numControl = numControl;
-            this.alumno = alumno;
-            this.grupo = grupo;
-            this.semestre = semestre;
-            this.turno = turno;
-            this.materia = materia;
-            this.tipoAlerta = tipoAlerta;
-            this.prioridad = prioridad;
-            this.motivoDetalle = motivoDetalle;
-            this.estatus = estatus;
-            this.fecha = fecha;
+            this.numControl = textoSeguro(numControl);
+            this.alumno = textoSeguro(alumno);
+            this.grupo = textoSeguro(grupo);
+            this.semestre = textoSeguro(semestre);
+            this.turno = textoSeguro(turno);
+            this.materia = textoSeguro(materia);
+            this.tipoAlerta = textoSeguro(tipoAlerta);
+            this.prioridad = textoSeguro(prioridad);
+            this.motivoDetalle = textoSeguro(motivoDetalle);
+            this.estatus = textoSeguro(estatus);
+            this.fecha = textoSeguro(fecha);
         }
 
-        public int getIdAlerta() { return idAlerta; }
-        public int getIdAlumno() { return idAlumno; }
-        public String getNumControl() { return numControl; }
-        public String getAlumno() { return alumno; }
-        public String getGrupo() { return grupo; }
-        public String getSemestre() { return semestre; }
-        public String getTurno() { return turno; }
-        public String getMateria() { return materia; }
-        public String getTipoAlerta() { return tipoAlerta; }
-        public String getPrioridad() { return prioridad; }
-        public String getMotivoDetalle() { return motivoDetalle; }
-        public String getEstatus() { return estatus; }
-        public String getFecha() { return fecha; }
+        private static String textoSeguro(String valor) {
+            return valor == null ? "" : valor;
+        }
+
+        public int getIdAlerta() {
+            return idAlerta;
+        }
+
+        public int getIdCarga() {
+            return idCarga;
+        }
+
+        public int getIdAlumno() {
+            return idAlumno;
+        }
+
+        public String getNumControl() {
+            return numControl;
+        }
+
+        public String getAlumno() {
+            return alumno;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getSemestre() {
+            return semestre;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getTipoAlerta() {
+            return tipoAlerta;
+        }
+
+        public String getPrioridad() {
+            return prioridad;
+        }
+
+        public String getMotivoDetalle() {
+            return motivoDetalle;
+        }
+
+        public String getEstatus() {
+            return estatus;
+        }
+
+        public String getFecha() {
+            return fecha;
+        }
     }
 }

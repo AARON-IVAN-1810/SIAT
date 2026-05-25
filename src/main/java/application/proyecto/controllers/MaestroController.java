@@ -39,6 +39,12 @@ public class MaestroController {
         cargarVista("/application/proyecto/views/maestro/HistorialAlumnoM.fxml");
     }
 
+    @FXML
+    private void selectLinks() {
+        cargarVista("/application/proyecto/views/maestro/LinksInscripcionM.fxml");
+    }
+
+
 
     @FXML
     public void initialize() {

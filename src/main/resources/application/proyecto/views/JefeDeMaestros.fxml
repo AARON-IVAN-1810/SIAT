@@ -57,11 +57,32 @@
                </graphic>
             </ToggleButton>
 
-            <ToggleButton fx:id="btnmaterias" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectmaterias" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Materias" textFill="WHITE">
+            <ToggleButton fx:id="btncatmaterias" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectCatalogoMateriasmaterias" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Catalogo de Materias" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="38.0" fitWidth="57.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../fotos/IconoMaterias.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnmaterias" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectmaterias" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Clases" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="38.0" fitWidth="57.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoClases.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </ToggleButton>
+
+
+            <ToggleButton fx:id="btnlinks" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectlinks" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Links de Inscripcion" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="38.0" fitWidth="57.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoQR.png" />
                      </image>
                   </ImageView>
                </graphic>

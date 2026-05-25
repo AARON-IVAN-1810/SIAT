@@ -94,20 +94,20 @@ public class PerfilUsuarioJDMController extends BaseController {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    txtNombre.setText(rs.getString("nombre"));
-                    txtApellidoPaterno.setText(rs.getString("apellido_paterno"));
-                    txtApellidoMaterno.setText(rs.getString("apellido_materno"));
-                    txtNumEmpleado.setText(rs.getString("num_empleado"));
-                    txtCorreo.setText(rs.getString("correo"));
-                    txtTelefono.setText(rs.getString("telefono"));
+                    txtNombre.setText(texto(rs.getString("nombre")));
+                    txtApellidoPaterno.setText(texto(rs.getString("apellido_paterno")));
+                    txtApellidoMaterno.setText(texto(rs.getString("apellido_materno")));
+                    txtNumEmpleado.setText(texto(rs.getString("num_empleado")));
+                    txtCorreo.setText(texto(rs.getString("correo")));
+                    txtTelefono.setText(texto(rs.getString("telefono")));
 
-                    passwordActual = rs.getString("password_hash") == null ? "" : rs.getString("password_hash");
+                    passwordActual = texto(rs.getString("password_hash"));
 
-                    cbPregunta1.setValue(rs.getString("pregunta_1"));
-                    txtRespuesta1.setText(rs.getString("respuesta_1"));
+                    cbPregunta1.setValue(texto(rs.getString("pregunta_1")).isEmpty() ? null : rs.getString("pregunta_1"));
+                    txtRespuesta1.setText(texto(rs.getString("respuesta_1")));
 
-                    cbPregunta2.setValue(rs.getString("pregunta_2"));
-                    txtRespuesta2.setText(rs.getString("respuesta_2"));
+                    cbPregunta2.setValue(texto(rs.getString("pregunta_2")).isEmpty() ? null : rs.getString("pregunta_2"));
+                    txtRespuesta2.setText(texto(rs.getString("respuesta_2")));
                 } else {
                     mostrarError("no se encontro informacion del usuario actual");
                 }
@@ -124,6 +124,7 @@ public class PerfilUsuarioJDMController extends BaseController {
         String nombre = txtNombre.getText() == null ? "" : txtNombre.getText().trim();
         String apellidoPaterno = txtApellidoPaterno.getText() == null ? "" : txtApellidoPaterno.getText().trim();
         String apellidoMaterno = txtApellidoMaterno.getText() == null ? "" : txtApellidoMaterno.getText().trim();
+        String correo = txtCorreo.getText() == null ? "" : txtCorreo.getText().trim().toLowerCase();
         String telefono = txtTelefono.getText() == null ? "" : txtTelefono.getText().trim();
 
         if (idMaestroActual == 0) {
@@ -136,11 +137,17 @@ public class PerfilUsuarioJDMController extends BaseController {
             return;
         }
 
+        if (!correo.isEmpty() && !correo.contains("@")) {
+            mostrarError("captura un correo valido");
+            return;
+        }
+
         String sql = """
                 update maestro
                 set nombre=?,
                 apellido_paterno=?,
                 apellido_materno=?,
+                correo=?,
                 telefono=?
                 where id_maestro=?
                 """;
@@ -151,12 +158,14 @@ public class PerfilUsuarioJDMController extends BaseController {
             ps.setString(1, nombre);
             ps.setString(2, apellidoPaterno);
             ps.setString(3, apellidoMaterno);
-            ps.setString(4, telefono);
-            ps.setInt(5, idMaestroActual);
+            ps.setString(4, correo);
+            ps.setString(5, telefono);
+            ps.setInt(6, idMaestroActual);
 
             ps.executeUpdate();
 
             mostrarInfo("datos personales actualizados correctamente");
+            cargarPerfil();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -271,6 +280,10 @@ public class PerfilUsuarioJDMController extends BaseController {
             e.printStackTrace();
             mostrarError("error al guardar preguntas");
         }
+    }
+
+    private String texto(String valor) {
+        return valor == null ? "" : valor;
     }
 
     private void mostrarError(String mensaje) {

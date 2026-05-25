@@ -83,10 +83,33 @@
                                    promptText="No. empleado"
                                    style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
 
-                        <PasswordField fx:id="txtContrasena"
-                                       prefHeight="36.0"
-                                       promptText="Contrasena"
-                                       style="-fx-background-color: #EEF0F7; -fx-background-radius: 8;" />
+                        <StackPane prefHeight="36.0" prefWidth="318.0">
+
+                           <TextField fx:id="txtContrasenaVisible"
+                                      managed="false"
+                                      visible="false"
+                                      prefHeight="36.0"
+                                      promptText="Contrasena"
+                                      style="-fx-background-color: #EEF0F7; -fx-background-radius: 8; -fx-padding: 0 42 0 10;" />
+
+                           <PasswordField fx:id="txtContrasena"
+                                          prefHeight="36.0"
+                                          promptText="Contrasena"
+                                          style="-fx-background-color: #EEF0F7; -fx-background-radius: 8; -fx-padding: 0 42 0 10;" />
+
+                           <Button fx:id="btnMostrarContrasena"
+                                   text="👁"
+                                   onAction="#handleMostrarContrasena"
+                                   prefHeight="28.0"
+                                   prefWidth="34.0"
+                                   StackPane.alignment="CENTER_RIGHT"
+                                   style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-size: 14px;">
+                              <StackPane.margin>
+                                 <Insets right="4.0" />
+                              </StackPane.margin>
+                           </Button>
+
+                        </StackPane>
 
                         <ComboBox fx:id="cbRol"
                                   prefHeight="36.0"

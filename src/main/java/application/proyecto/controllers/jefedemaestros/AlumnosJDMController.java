@@ -32,7 +32,18 @@ public class AlumnosJDMController extends BaseController {
     @FXML private TableColumn<AlumnoJDM, String> colSexoAlumno;
     @FXML private TableColumn<AlumnoJDM, String> colEstatusAlumno;
 
+    @FXML private ComboBox<ItemCombo> cbClaseInscripcion;
+    @FXML private TableView<ClaseAlumnoJDM> tablaClasesAlumno;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseMateria;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseGrupo;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseTurno;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseCiclo;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseMaestro;
+    @FXML private TableColumn<ClaseAlumnoJDM, String> colClaseEstatus;
+
     private final ObservableList<AlumnoJDM> listaAlumnos = FXCollections.observableArrayList();
+    private final ObservableList<ClaseAlumnoJDM> listaClasesAlumno = FXCollections.observableArrayList();
+
     private AlumnoJDM alumnoSeleccionado;
     private boolean modoEdicion = false;
 
@@ -43,6 +54,7 @@ public class AlumnosJDMController extends BaseController {
         configurarEventos();
         cargarGrupos();
         cargarSexos();
+        cargarClasesDisponibles();
         cargarAlumnos();
         configurarBusqueda();
     }
@@ -53,6 +65,15 @@ public class AlumnosJDMController extends BaseController {
         colGrupoAlumno.setCellValueFactory(new PropertyValueFactory<>("grupo"));
         colSexoAlumno.setCellValueFactory(new PropertyValueFactory<>("sexo"));
         colEstatusAlumno.setCellValueFactory(new PropertyValueFactory<>("estatus"));
+
+        colClaseMateria.setCellValueFactory(new PropertyValueFactory<>("materia"));
+        colClaseGrupo.setCellValueFactory(new PropertyValueFactory<>("grupo"));
+        colClaseTurno.setCellValueFactory(new PropertyValueFactory<>("turno"));
+        colClaseCiclo.setCellValueFactory(new PropertyValueFactory<>("ciclo"));
+        colClaseMaestro.setCellValueFactory(new PropertyValueFactory<>("maestro"));
+        colClaseEstatus.setCellValueFactory(new PropertyValueFactory<>("estatus"));
+
+        tablaClasesAlumno.setItems(listaClasesAlumno);
     }
 
     private void configurarCombos() {
@@ -63,6 +84,12 @@ public class AlumnosJDMController extends BaseController {
     private void configurarEventos() {
         tablaAlumnos.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
             alumnoSeleccionado = newValue;
+
+            if (alumnoSeleccionado != null) {
+                cargarClasesAlumno(alumnoSeleccionado.getIdAlumno());
+            } else {
+                listaClasesAlumno.clear();
+            }
         });
     }
 
@@ -121,6 +148,41 @@ public class AlumnosJDMController extends BaseController {
         }
     }
 
+    private void cargarClasesDisponibles() {
+        cbClaseInscripcion.getItems().clear();
+
+        String sql = """
+                select
+                c.id_carga,
+                concat(m.clave,' - ',m.nombre,' | ',g.nombre,' - ',ct.nombre,' - ',ce.nombre,' | ',ma.nombre,' ',ma.apellido_paterno) as clase
+                from carga c
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join maestro ma on c.id_maestro=ma.id_maestro
+                where c.id_estatus_general=1
+                order by ce.nombre desc,g.semestre,g.nombre,m.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                cbClaseInscripcion.getItems().add(new ItemCombo(
+                        rs.getInt("id_carga"),
+                        rs.getString("clase")
+                ));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar clases");
+        }
+    }
+
     private void cargarAlumnos() {
         listaAlumnos.clear();
 
@@ -171,6 +233,58 @@ public class AlumnosJDMController extends BaseController {
         }
     }
 
+    private void cargarClasesAlumno(int idAlumno) {
+        listaClasesAlumno.clear();
+
+        String sql = """
+                select
+                ac.id_alumno_carga,
+                c.id_carga,
+                m.nombre as materia,
+                g.nombre as grupo,
+                ct.nombre as turno,
+                ce.nombre as ciclo,
+                concat(ma.nombre,' ',ma.apellido_paterno,' ',ma.apellido_materno) as maestro,
+                ceg.nombre as estatus
+                from alumno_carga ac
+                inner join carga c on ac.id_carga=c.id_carga
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join maestro ma on c.id_maestro=ma.id_maestro
+                inner join cat_estatus_general ceg on ac.id_estatus_general=ceg.id_estatus_general
+                where ac.id_alumno=?
+                order by ce.nombre,g.semestre,g.nombre,m.nombre
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idAlumno);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    listaClasesAlumno.add(new ClaseAlumnoJDM(
+                            rs.getInt("id_alumno_carga"),
+                            rs.getInt("id_carga"),
+                            rs.getString("materia"),
+                            rs.getString("grupo"),
+                            rs.getString("turno"),
+                            rs.getString("ciclo"),
+                            rs.getString("maestro"),
+                            rs.getString("estatus")
+                    ));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar clases del alumno");
+        }
+    }
+
     @FXML
     private void handleGuardarAlumno() {
         String nombre = txtNombreAlumno.getText() == null ? "" : txtNombreAlumno.getText().trim();
@@ -215,7 +329,6 @@ public class AlumnosJDMController extends BaseController {
             ps.setString(4, apellidoPaterno);
             ps.setString(5, apellidoMaterno);
             ps.setInt(6, idSexo);
-
             ps.executeUpdate();
 
             mostrarInfo("alumno guardado correctamente");
@@ -250,7 +363,6 @@ public class AlumnosJDMController extends BaseController {
             ps.setString(5, apellidoMaterno);
             ps.setInt(6, idSexo);
             ps.setInt(7, alumnoSeleccionado.getIdAlumno());
-
             ps.executeUpdate();
 
             mostrarInfo("alumno actualizado correctamente");
@@ -297,16 +409,84 @@ public class AlumnosJDMController extends BaseController {
 
             ps.setInt(1, nuevoEstatus);
             ps.setInt(2, alumnoSeleccionado.getIdAlumno());
-
             ps.executeUpdate();
 
             mostrarInfo("estatus actualizado correctamente");
             limpiarFormulario();
             cargarAlumnos();
+            listaClasesAlumno.clear();
 
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al cambiar estatus");
+        }
+    }
+
+    @FXML
+    private void handleInscribirAlumnoClase() {
+        if (alumnoSeleccionado == null) {
+            mostrarError("selecciona un alumno");
+            return;
+        }
+
+        ItemCombo clase = cbClaseInscripcion.getValue();
+
+        if (clase == null) {
+            mostrarError("selecciona una clase");
+            return;
+        }
+
+        String sql = """
+                insert into alumno_carga(id_alumno,id_carga,id_estatus_general)
+                values(?,?,1)
+                on duplicate key update id_estatus_general=1
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, alumnoSeleccionado.getIdAlumno());
+            ps.setInt(2, clase.getId());
+            ps.executeUpdate();
+
+            mostrarInfo("alumno inscrito correctamente");
+            cbClaseInscripcion.setValue(null);
+            cargarClasesAlumno(alumnoSeleccionado.getIdAlumno());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al inscribir alumno a clase");
+        }
+    }
+
+    @FXML
+    private void handleQuitarInscripcionAlumnoClase() {
+        if (alumnoSeleccionado == null) {
+            mostrarError("selecciona un alumno");
+            return;
+        }
+
+        ClaseAlumnoJDM claseSeleccionada = tablaClasesAlumno.getSelectionModel().getSelectedItem();
+
+        if (claseSeleccionada == null) {
+            mostrarError("selecciona una clase inscrita");
+            return;
+        }
+
+        String sql = "update alumno_carga set id_estatus_general=0 where id_alumno_carga=?";
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, claseSeleccionada.getIdAlumnoCarga());
+            ps.executeUpdate();
+
+            mostrarInfo("inscripcion desactivada correctamente");
+            cargarClasesAlumno(alumnoSeleccionado.getIdAlumno());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al quitar inscripcion");
         }
     }
 
@@ -389,6 +569,10 @@ public class AlumnosJDMController extends BaseController {
             return id;
         }
 
+        public String getNombre() {
+            return nombre;
+        }
+
         @Override
         public String toString() {
             return nombre;
@@ -420,16 +604,102 @@ public class AlumnosJDMController extends BaseController {
             this.estatus = estatus;
         }
 
-        public int getIdAlumno() { return idAlumno; }
-        public String getNombre() { return nombre; }
-        public String getApellidoPaterno() { return apellidoPaterno; }
-        public String getApellidoMaterno() { return apellidoMaterno; }
-        public String getNombreCompleto() { return nombre + " " + apellidoPaterno + " " + apellidoMaterno; }
-        public String getNumeroControl() { return numeroControl; }
-        public int getIdGrupoCiclo() { return idGrupoCiclo; }
-        public String getGrupo() { return grupo; }
-        public int getIdSexo() { return idSexo; }
-        public String getSexo() { return sexo; }
-        public String getEstatus() { return estatus; }
+        public int getIdAlumno() {
+            return idAlumno;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public String getApellidoPaterno() {
+            return apellidoPaterno;
+        }
+
+        public String getApellidoMaterno() {
+            return apellidoMaterno;
+        }
+
+        public String getNombreCompleto() {
+            return nombre + " " + apellidoPaterno + " " + apellidoMaterno;
+        }
+
+        public String getNumeroControl() {
+            return numeroControl;
+        }
+
+        public int getIdGrupoCiclo() {
+            return idGrupoCiclo;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public int getIdSexo() {
+            return idSexo;
+        }
+
+        public String getSexo() {
+            return sexo;
+        }
+
+        public String getEstatus() {
+            return estatus;
+        }
+    }
+
+    public static class ClaseAlumnoJDM {
+        private final int idAlumnoCarga;
+        private final int idCarga;
+        private final String materia;
+        private final String grupo;
+        private final String turno;
+        private final String ciclo;
+        private final String maestro;
+        private final String estatus;
+
+        public ClaseAlumnoJDM(int idAlumnoCarga, int idCarga, String materia, String grupo, String turno, String ciclo, String maestro, String estatus) {
+            this.idAlumnoCarga = idAlumnoCarga;
+            this.idCarga = idCarga;
+            this.materia = materia;
+            this.grupo = grupo;
+            this.turno = turno;
+            this.ciclo = ciclo;
+            this.maestro = maestro;
+            this.estatus = estatus;
+        }
+
+        public int getIdAlumnoCarga() {
+            return idAlumnoCarga;
+        }
+
+        public int getIdCarga() {
+            return idCarga;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getCiclo() {
+            return ciclo;
+        }
+
+        public String getMaestro() {
+            return maestro;
+        }
+
+        public String getEstatus() {
+            return estatus;
+        }
     }
 }

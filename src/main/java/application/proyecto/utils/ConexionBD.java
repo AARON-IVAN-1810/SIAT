@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 
 public class ConexionBD {
 
-    private static final String URL = "jdbc:mysql://localhost:3306/bd_siat";
+    private static final String URL = "jdbc:mysql://localhost:3306/base_prueba";
     private static final String USER = "root";
     private static final String PASSWORD = "Aaron1810";
 

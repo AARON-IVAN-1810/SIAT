@@ -21,6 +21,10 @@ public class LoginController {
     @FXML private ComboBox<String> cbRol;
     @FXML private TextField txtUsuario;
     @FXML private PasswordField txtContrasena;
+    @FXML private TextField txtContrasenaVisible;
+    @FXML private Button btnMostrarContrasena;
+
+    private boolean contrasenaVisible = false;
 
     @FXML
     public void initialize() {
@@ -29,6 +33,47 @@ public class LoginController {
                 "Maestro",
                 "Tutor"
         ));
+
+        configurarCampoContrasena();
+    }
+
+    private void configurarCampoContrasena() {
+        if (txtContrasenaVisible == null || txtContrasena == null) {
+            return;
+        }
+
+        txtContrasenaVisible.textProperty().bindBidirectional(txtContrasena.textProperty());
+
+        txtContrasenaVisible.setVisible(false);
+        txtContrasenaVisible.setManaged(false);
+
+        txtContrasena.setVisible(true);
+        txtContrasena.setManaged(true);
+
+        if (btnMostrarContrasena != null) {
+            btnMostrarContrasena.setText("\uD83D\uDD12");
+        }
+    }
+
+    @FXML
+    private void handleMostrarContrasena() {
+        contrasenaVisible = !contrasenaVisible;
+
+        txtContrasenaVisible.setVisible(contrasenaVisible);
+        txtContrasenaVisible.setManaged(contrasenaVisible);
+
+        txtContrasena.setVisible(!contrasenaVisible);
+        txtContrasena.setManaged(!contrasenaVisible);
+
+        if (contrasenaVisible) {
+            btnMostrarContrasena.setText("\uD83D\uDD13");
+            txtContrasenaVisible.requestFocus();
+            txtContrasenaVisible.positionCaret(txtContrasenaVisible.getText().length());
+        } else {
+            btnMostrarContrasena.setText("\uD83D\uDD12");
+            txtContrasena.requestFocus();
+            txtContrasena.positionCaret(txtContrasena.getText().length());
+        }
     }
 
     @FXML

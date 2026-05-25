@@ -70,6 +70,10 @@ public class EstadisticasJDMController extends BaseController {
         colMaestro.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         colAlertasMaestro.setCellValueFactory(new PropertyValueFactory<>("total"));
         colPorcentajeMaestro.setCellValueFactory(new PropertyValueFactory<>("porcentaje"));
+
+        tablaRankingGrupos.setItems(listaGrupos);
+        tablaRankingMaterias.setItems(listaMaterias);
+        tablaRankingMaestros.setItems(listaMaestros);
     }
 
     @FXML
@@ -90,8 +94,8 @@ public class EstadisticasJDMController extends BaseController {
         String sql = """
                 select
                 count(*) as total_alertas,
-                sum(case when cta.nombre='asistencia' then 1 else 0 end) as alertas_asistencia,
-                sum(case when cta.nombre='actividad' then 1 else 0 end) as alertas_actividad
+                coalesce(sum(case when lower(cta.nombre)='asistencia' then 1 else 0 end),0) as alertas_asistencia,
+                coalesce(sum(case when lower(cta.nombre)<>'asistencia' then 1 else 0 end),0) as alertas_actividad
                 from alerta a
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 where a.id_estatus_alerta in (1,2)
@@ -140,11 +144,11 @@ public class EstadisticasJDMController extends BaseController {
                 String sexo = rs.getString("sexo");
                 int total = rs.getInt("total");
 
-                if (sexo.equalsIgnoreCase("hombre")) {
+                if (sexo != null && sexo.equalsIgnoreCase("hombre")) {
                     hombres = total;
                 }
 
-                if (sexo.equalsIgnoreCase("mujer")) {
+                if (sexo != null && sexo.equalsIgnoreCase("mujer")) {
                     mujeres = total;
                 }
             }
@@ -177,21 +181,22 @@ public class EstadisticasJDMController extends BaseController {
 
         String sql = """
                 select
-                g.nombre as nombre,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as nombre,
                 count(*) as total,
                 round((count(*) / nullif((select count(*) from alerta where id_estatus_alerta in (1,2)),0)) * 100,2) as porcentaje
                 from alerta a
                 inner join carga c on a.id_carga=c.id_carga
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where a.id_estatus_alerta in (1,2)
-                group by g.nombre
-                order by total desc
+                group by gc.id_grupo_ciclo,g.nombre,ct.nombre,ce.nombre
+                order by total desc,nombre
                 limit 5
                 """;
 
-        cargarRanking(sql, listaGrupos, tablaRankingGrupos);
-
+        cargarRanking(sql, listaGrupos);
         grupoMayorRiesgo = listaGrupos.isEmpty() ? "sin datos" : listaGrupos.get(0).getNombre();
     }
 
@@ -200,20 +205,23 @@ public class EstadisticasJDMController extends BaseController {
 
         String sql = """
                 select
-                m.nombre as nombre,
+                concat(m.nombre,' - ',g.nombre,' - ',ct.nombre,' - ',ce.nombre) as nombre,
                 count(*) as total,
                 round((count(*) / nullif((select count(*) from alerta where id_estatus_alerta in (1,2)),0)) * 100,2) as porcentaje
                 from alerta a
                 inner join carga c on a.id_carga=c.id_carga
                 inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where a.id_estatus_alerta in (1,2)
-                group by m.nombre
-                order by total desc
+                group by c.id_carga,m.nombre,g.nombre,ct.nombre,ce.nombre
+                order by total desc,nombre
                 limit 5
                 """;
 
-        cargarRanking(sql, listaMaterias, tablaRankingMaterias);
-
+        cargarRanking(sql, listaMaterias);
         materiaMayorRiesgo = listaMaterias.isEmpty() ? "sin datos" : listaMaterias.get(0).getNombre();
     }
 
@@ -230,29 +238,28 @@ public class EstadisticasJDMController extends BaseController {
                 inner join maestro ma on c.id_maestro=ma.id_maestro
                 where a.id_estatus_alerta in (1,2)
                 group by ma.id_maestro,ma.nombre,ma.apellido_paterno,ma.apellido_materno
-                order by total desc
+                order by total desc,nombre
                 limit 5
                 """;
 
-        cargarRanking(sql, listaMaestros, tablaRankingMaestros);
-
+        cargarRanking(sql, listaMaestros);
         maestroMayorRiesgo = listaMaestros.isEmpty() ? "sin datos" : listaMaestros.get(0).getNombre();
     }
 
-    private void cargarRanking(String sql, ObservableList<RankingItem> lista, TableView<RankingItem> tabla) {
+    private void cargarRanking(String sql, ObservableList<RankingItem> lista) {
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
+                double porcentaje = rs.getObject("porcentaje") == null ? 0 : rs.getDouble("porcentaje");
+
                 lista.add(new RankingItem(
                         rs.getString("nombre"),
                         rs.getInt("total"),
-                        rs.getDouble("porcentaje")
+                        porcentaje
                 ));
             }
-
-            tabla.setItems(lista);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -291,7 +298,7 @@ public class EstadisticasJDMController extends BaseController {
             );
 
             lblRecomendacionAutomatica.setText(
-                    "Se recomienda mantener el monitoreo de asistencias y entregas para detectar cambios a tiempo."
+                    "Se recomienda mantener el monitoreo de asistencias y actividades para detectar cambios a tiempo."
             );
             return;
         }
@@ -299,7 +306,7 @@ public class EstadisticasJDMController extends BaseController {
         lblDiagnosticoAutomatico.setText(
                 "El sistema detecta un riesgo general " + riesgo +
                         ". El grupo con mayor concentracion de alertas es " + grupoMayorRiesgo +
-                        ", la materia con mas incidencias es " + materiaMayorRiesgo +
+                        ", la clase con mas incidencias es " + materiaMayorRiesgo +
                         " y el maestro asociado con mas alertas es " + maestroMayorRiesgo +
                         ". El tipo de alerta dominante es " + tipoDominante +
                         ". En el analisis por sexo, el mayor porcentaje de alertas se concentra en " + sexoMayorRiesgo + "."
@@ -307,7 +314,7 @@ public class EstadisticasJDMController extends BaseController {
 
         lblRecomendacionAutomatica.setText(
                 "Se recomienda priorizar el seguimiento del grupo " + grupoMayorRiesgo +
-                        ", revisar el comportamiento de la materia " + materiaMayorRiesgo +
+                        ", revisar el comportamiento de la clase " + materiaMayorRiesgo +
                         " y analizar con el maestro " + maestroMayorRiesgo +
                         " las posibles causas de las alertas. Tambien se sugiere atender primero los casos relacionados con " +
                         tipoDominante + ", ya que representan el indicador mas repetido en el sistema."

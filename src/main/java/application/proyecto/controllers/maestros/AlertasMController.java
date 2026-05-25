@@ -1,6 +1,7 @@
 package application.proyecto.controllers.maestros;
 
 import application.proyecto.controllers.BaseController;
+import application.proyecto.controllers.MaestroController;
 import application.proyecto.utils.ConexionBD;
 import application.proyecto.utils.SesionAlerta;
 import application.proyecto.utils.SesionUsuario;
@@ -8,16 +9,14 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Stage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-
-import application.proyecto.controllers.MaestroController;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
 
 public class AlertasMController extends BaseController {
 
@@ -67,32 +66,54 @@ public class AlertasMController extends BaseController {
     }
 
     private void configurarFiltros() {
-        cbFiltroEstado.setItems(FXCollections.observableArrayList(
-                "todos",
-                "pendiente",
-                "cerrada"
+        if (cbFiltroEstado != null) {
+            cbFiltroEstado.setItems(FXCollections.observableArrayList(
+                    "todos",
+                    "pendiente",
+                    "cerrada"
+            ));
 
-        ));
+            cbFiltroEstado.setValue("todos");
+        }
 
-        cbFiltroMotivo.setItems(FXCollections.observableArrayList(
-                "todos",
-                "asistencia",
-                "actividad"
+        if (cbFiltroMotivo != null) {
+            cbFiltroMotivo.setItems(FXCollections.observableArrayList(
+                    "todos",
+                    "asistencia",
+                    "actividad",
+                    "conducta"
+            ));
 
-        ));
-
-        cbFiltroEstado.setValue("todos");
-        cbFiltroMotivo.setValue("todos");
+            cbFiltroMotivo.setValue("todos");
+        }
     }
 
     private void configurarEventos() {
-        tablaAlertas.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
-            alertaSeleccionada = newValue;
-        });
+        if (tablaAlertas != null) {
+            tablaAlertas.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> {
+                alertaSeleccionada = newValue;
+            });
+        }
 
-        txtBuscarTabla.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
-        cbFiltroEstado.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
-        cbFiltroMotivo.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        if (txtBuscarSuperior != null) {
+            txtBuscarSuperior.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (txtBuscarTabla != null) {
+            txtBuscarTabla.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (cbFiltroEstado != null) {
+            cbFiltroEstado.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (cbFiltroMotivo != null) {
+            cbFiltroMotivo.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (btnDarSeguimiento != null) {
+            btnDarSeguimiento.setOnAction(event -> handleDarSeguimiento());
+        }
     }
 
     private void cargarAlertas() {
@@ -112,21 +133,26 @@ public class AlertasMController extends BaseController {
                 c.id_carga,
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as nombre_alumno,
-                g.nombre as grupo,
+                concat(g.nombre,' - ',ce.nombre) as grupo,
                 ct.nombre as turno,
-                m.nombre as materia,
+                concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 cea.nombre as estado
                 from alerta a
                 inner join alumno al on a.id_alumno=al.id_alumno
                 inner join carga c on a.id_carga=c.id_carga
+                inner join materia m on c.id_materia=m.id_materia
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join materia m on c.id_materia=m.id_materia
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
                 where c.id_maestro=?
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                and al.id_estatus_general=1
                 order by a.creada_en desc
                 """;
 
@@ -152,6 +178,8 @@ public class AlertasMController extends BaseController {
                 }
             }
 
+            aplicarFiltro();
+
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al cargar alertas");
@@ -159,21 +187,32 @@ public class AlertasMController extends BaseController {
     }
 
     private void aplicarFiltro() {
-        String texto = txtBuscarTabla.getText() == null
+        if (listaFiltrada == null) {
+            return;
+        }
+
+        String textoSuperior = txtBuscarSuperior == null || txtBuscarSuperior.getText() == null
+                ? ""
+                : txtBuscarSuperior.getText().toLowerCase().trim();
+
+        String textoTabla = txtBuscarTabla == null || txtBuscarTabla.getText() == null
                 ? ""
                 : txtBuscarTabla.getText().toLowerCase().trim();
 
-        String estado = cbFiltroEstado.getValue() == null
+        String texto = (textoSuperior + " " + textoTabla).trim();
+
+        String estado = cbFiltroEstado == null || cbFiltroEstado.getValue() == null
                 ? "todos"
                 : cbFiltroEstado.getValue().toLowerCase().trim();
 
-        String motivo = cbFiltroMotivo.getValue() == null
+        String motivo = cbFiltroMotivo == null || cbFiltroMotivo.getValue() == null
                 ? "todos"
                 : cbFiltroMotivo.getValue().toLowerCase().trim();
 
         listaFiltrada.setPredicate(alerta -> {
             boolean coincideTexto =
-                    alerta.getNumControl().toLowerCase().contains(texto) ||
+                    texto.isEmpty() ||
+                            alerta.getNumControl().toLowerCase().contains(texto) ||
                             alerta.getNombreAlumno().toLowerCase().contains(texto) ||
                             alerta.getGrupo().toLowerCase().contains(texto) ||
                             alerta.getTurno().toLowerCase().contains(texto) ||
@@ -181,13 +220,18 @@ public class AlertasMController extends BaseController {
                             alerta.getMotivo().toLowerCase().contains(texto) ||
                             alerta.getEstado().toLowerCase().contains(texto);
 
+            String estadoAlerta = alerta.getEstado().toLowerCase();
+            String motivoAlerta = alerta.getMotivo().toLowerCase();
+
             boolean coincideEstado =
                     estado.equals("todos") ||
-                            alerta.getEstado().toLowerCase().equals(estado);
+                            estadoAlerta.equals(estado);
 
             boolean coincideMotivo =
                     motivo.equals("todos") ||
-                            alerta.getMotivo().toLowerCase().equals(motivo);
+                            motivoAlerta.equals(motivo) ||
+                            (motivo.equals("actividad") && motivoAlerta.equals("calificacion")) ||
+                            (motivo.equals("calificacion") && motivoAlerta.equals("actividad"));
 
             return coincideTexto && coincideEstado && coincideMotivo;
         });
@@ -212,29 +256,31 @@ public class AlertasMController extends BaseController {
                 alertaSeleccionada.getMotivo()
         );
 
-        Stage stage = (Stage) btnDarSeguimiento.getScene().getWindow();
-        Scene scene = stage.getScene();
+        abrirVistaReportes();
+    }
 
-        MaestroController maestroController = (MaestroController) scene.getRoot().getProperties().get("controller");
+    private void abrirVistaReportes() {
+        try {
+            Stage stage = (Stage) btnDarSeguimiento.getScene().getWindow();
+            Scene scene = stage.getScene();
 
-        if (maestroController != null) {
-            maestroController.cargarVista("/application/proyecto/views/maestro/ReportesM.fxml");
-        } else {
-            mostrarError("no se pudo abrir la vista de reportes automaticamente");
+            MaestroController maestroController = (MaestroController) scene.getRoot().getProperties().get("controller");
+
+            if (maestroController != null) {
+                maestroController.cargarVista("/application/proyecto/views/maestro/ReportesM.fxml");
+            } else {
+                mostrarError("no se pudo abrir la vista de reportes automaticamente");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al abrir reportes");
         }
     }
 
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
-    }
-
-    private void mostrarInfo(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("informacion");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
@@ -256,24 +302,57 @@ public class AlertasMController extends BaseController {
             this.idAlerta = idAlerta;
             this.idAlumno = idAlumno;
             this.idCarga = idCarga;
-            this.numControl = numControl;
-            this.nombreAlumno = nombreAlumno;
-            this.grupo = grupo;
-            this.turno = turno;
-            this.materia = materia;
-            this.motivo = motivo;
-            this.estado = estado;
+            this.numControl = textoSeguro(numControl);
+            this.nombreAlumno = textoSeguro(nombreAlumno);
+            this.grupo = textoSeguro(grupo);
+            this.turno = textoSeguro(turno);
+            this.materia = textoSeguro(materia);
+            this.motivo = textoSeguro(motivo);
+            this.estado = textoSeguro(estado);
         }
 
-        public int getIdAlerta() { return idAlerta; }
-        public int getIdAlumno() { return idAlumno; }
-        public int getIdCarga() { return idCarga; }
-        public String getNumControl() { return numControl; }
-        public String getNombreAlumno() { return nombreAlumno; }
-        public String getGrupo() { return grupo; }
-        public String getTurno() { return turno; }
-        public String getMateria() { return materia; }
-        public String getMotivo() { return motivo; }
-        public String getEstado() { return estado; }
+        private static String textoSeguro(String valor) {
+            return valor == null ? "" : valor;
+        }
+
+        public int getIdAlerta() {
+            return idAlerta;
+        }
+
+        public int getIdAlumno() {
+            return idAlumno;
+        }
+
+        public int getIdCarga() {
+            return idCarga;
+        }
+
+        public String getNumControl() {
+            return numControl;
+        }
+
+        public String getNombreAlumno() {
+            return nombreAlumno;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public String getEstado() {
+            return estado;
+        }
     }
 }

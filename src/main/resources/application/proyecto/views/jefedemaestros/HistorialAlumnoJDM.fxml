@@ -86,7 +86,7 @@
                             <ComboBox fx:id="cbGrupo"
                                       prefHeight="40.0"
                                       prefWidth="220.0"
-                                      promptText="Seleccione grupo" />
+                                      promptText="Seleccione Clase" />
 
                             <ComboBox fx:id="cbAlumno"
                                       prefHeight="40.0"

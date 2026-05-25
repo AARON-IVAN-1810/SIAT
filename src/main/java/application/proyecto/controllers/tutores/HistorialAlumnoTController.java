@@ -98,22 +98,33 @@ public class HistorialAlumnoTController extends BaseController {
         cbGrupo.getItems().clear();
         cbAlumno.getItems().clear();
 
+        int idTutor = getIdTutorActual();
+
+        if (idTutor == 0) {
+            mostrarError("no hay tutor en sesion");
+            return;
+        }
+
         String sql = """
                 select distinct
                 gc.id_grupo_ciclo,
-                g.nombre as grupo
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
                 from tutoria_asignacion ta
                 inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by g.nombre
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                order by grupo
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdTutorActual());
+            ps.setInt(1, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -140,20 +151,28 @@ public class HistorialAlumnoTController extends BaseController {
         }
 
         String sql = """
-                select
+                select distinct
                 al.id_alumno,
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno
                 from alumno al
-                where al.id_grupo_ciclo=?
-                and al.id_estatus_general=1
-                order by al.apellido_paterno,al.apellido_materno,al.nombre
+                left join alumno_carga ac on al.id_alumno=ac.id_alumno
+                and ac.id_estatus_general=1
+                left join carga c on ac.id_carga=c.id_carga
+                and c.id_estatus_general=1
+                where al.id_estatus_general=1
+                and (
+                    al.id_grupo_ciclo=?
+                    or c.id_grupo_ciclo=?
+                )
+                order by alumno
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, grupo.getIdGrupoCiclo());
+            ps.setInt(2, grupo.getIdGrupoCiclo());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -186,32 +205,44 @@ public class HistorialAlumnoTController extends BaseController {
             return;
         }
 
-        cargarMetricas(alumno.getIdAlumno());
-        cargarAlertas(alumno.getIdAlumno());
-        cargarReportes(alumno.getIdAlumno());
+        cargarMetricas(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
+        cargarAlertas(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
+        cargarReportes(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
         generarDiagnostico();
     }
 
-    private void cargarMetricas(int idAlumno) {
+    private void cargarMetricas(int idAlumno, int idGrupoCiclo) {
         String sqlAlertas = """
                 select
-                count(*) as total_alertas,
-                sum(case when cta.nombre='asistencia' then 1 else 0 end) as alertas_asistencia,
-                sum(case when cta.nombre='actividad' then 1 else 0 end) as alertas_actividad
+                count(distinct a.id_alerta) as total_alertas,
+                coalesce(sum(case when lower(cta.nombre)='asistencia' then 1 else 0 end),0) as alertas_asistencia,
+                coalesce(sum(case when lower(cta.nombre) in ('actividad','calificacion') then 1 else 0 end),0) as alertas_actividad
                 from alerta a
+                inner join carga c on a.id_carga=c.id_carga
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
+                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
                 where a.id_alumno=?
+                and c.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 """;
 
         String sqlReportes = """
-                select count(*) as total_reportes
+                select count(distinct rd.id_reporte_docente) as total_reportes
                 from reporte_docente rd
+                inner join carga c on rd.id_carga=c.id_carga
+                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
                 where rd.id_alumno=?
+                and c.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 """;
 
         try (Connection con = ConexionBD.conectar()) {
             try (PreparedStatement ps = con.prepareStatement(sqlAlertas)) {
                 ps.setInt(1, idAlumno);
+                ps.setInt(2, idGrupoCiclo);
+                ps.setInt(3, getIdTutorActual());
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -224,6 +255,8 @@ public class HistorialAlumnoTController extends BaseController {
 
             try (PreparedStatement ps = con.prepareStatement(sqlReportes)) {
                 ps.setInt(1, idAlumno);
+                ps.setInt(2, idGrupoCiclo);
+                ps.setInt(3, getIdTutorActual());
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -244,25 +277,30 @@ public class HistorialAlumnoTController extends BaseController {
         }
     }
 
-    private void cargarAlertas(int idAlumno) {
+    private void cargarAlertas(int idAlumno, int idGrupoCiclo) {
         listaAlertas.clear();
 
         String sql = """
                 select
                 date_format(a.creada_en,'%Y-%m-%d') as fecha,
-                g.nombre as grupo,
-                ifnull(m.nombre,'sin materia') as materia,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 cea.nombre as estado
                 from alerta a
-                inner join alumno al on a.id_alumno=al.id_alumno
-                inner join grupo_ciclo gc on al.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join carga c on a.id_carga=c.id_carga
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
-                left join carga c on a.id_carga=c.id_carga
-                left join materia m on c.id_materia=m.id_materia
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
+                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
                 where a.id_alumno=?
+                and c.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 order by a.creada_en desc
                 """;
 
@@ -270,6 +308,8 @@ public class HistorialAlumnoTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idAlumno);
+            ps.setInt(2, idGrupoCiclo);
+            ps.setInt(3, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -289,26 +329,31 @@ public class HistorialAlumnoTController extends BaseController {
         }
     }
 
-    private void cargarReportes(int idAlumno) {
+    private void cargarReportes(int idAlumno, int idGrupoCiclo) {
         listaReportes.clear();
 
         String sql = """
                 select
                 date_format(rd.creado_en,'%Y-%m-%d') as fecha,
-                g.nombre as grupo,
-                ifnull(m.nombre,'sin materia') as materia,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 rd.descripcion,
                 cer.nombre as estado
                 from reporte_docente rd
-                inner join alumno al on rd.id_alumno=al.id_alumno
-                inner join grupo_ciclo gc on al.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join carga c on rd.id_carga=c.id_carga
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
-                left join carga c on rd.id_carga=c.id_carga
-                left join materia m on c.id_materia=m.id_materia
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_reporte_docente cer on rd.id_estatus_reporte_docente=cer.id_estatus_reporte_docente
+                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
                 where rd.id_alumno=?
+                and c.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 order by rd.creado_en desc
                 """;
 
@@ -316,6 +361,8 @@ public class HistorialAlumnoTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idAlumno);
+            ps.setInt(2, idGrupoCiclo);
+            ps.setInt(3, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -372,7 +419,7 @@ public class HistorialAlumnoTController extends BaseController {
                 "El alumno presenta un estado actual de " + calcularEstado() +
                         ". El problema dominante detectado es " + problemaDominante +
                         ". Tiene " + totalAlertas + " alertas registradas y " +
-                        reportesGenerados + " reportes generados."
+                        reportesGenerados + " reportes generados en las clases de este grupo."
         );
 
         lblCausasDetectadas.setText(causas);
@@ -496,7 +543,7 @@ public class HistorialAlumnoTController extends BaseController {
 
         public GrupoItem(int idGrupoCiclo, String nombre) {
             this.idGrupoCiclo = idGrupoCiclo;
-            this.nombre = nombre;
+            this.nombre = nombre == null ? "" : nombre;
         }
 
         public int getIdGrupoCiclo() {
@@ -516,8 +563,8 @@ public class HistorialAlumnoTController extends BaseController {
 
         public AlumnoItem(int idAlumno, String numControl, String nombre) {
             this.idAlumno = idAlumno;
-            this.numControl = numControl;
-            this.nombre = nombre;
+            this.numControl = numControl == null ? "" : numControl;
+            this.nombre = nombre == null ? "" : nombre;
         }
 
         public int getIdAlumno() {
@@ -538,18 +585,32 @@ public class HistorialAlumnoTController extends BaseController {
         private final String estado;
 
         public AlertaItem(String fecha, String grupo, String materia, String motivo, String estado) {
-            this.fecha = fecha;
-            this.grupo = grupo;
-            this.materia = materia;
-            this.motivo = motivo;
-            this.estado = estado;
+            this.fecha = fecha == null ? "" : fecha;
+            this.grupo = grupo == null ? "" : grupo;
+            this.materia = materia == null ? "" : materia;
+            this.motivo = motivo == null ? "" : motivo;
+            this.estado = estado == null ? "" : estado;
         }
 
-        public String getFecha() { return fecha; }
-        public String getGrupo() { return grupo; }
-        public String getMateria() { return materia; }
-        public String getMotivo() { return motivo; }
-        public String getEstado() { return estado; }
+        public String getFecha() {
+            return fecha;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public String getEstado() {
+            return estado;
+        }
     }
 
     public static class ReporteItem {
@@ -561,19 +622,36 @@ public class HistorialAlumnoTController extends BaseController {
         private final String estado;
 
         public ReporteItem(String fecha, String grupo, String materia, String motivo, String descripcion, String estado) {
-            this.fecha = fecha;
-            this.grupo = grupo;
-            this.materia = materia;
-            this.motivo = motivo;
-            this.descripcion = descripcion;
-            this.estado = estado;
+            this.fecha = fecha == null ? "" : fecha;
+            this.grupo = grupo == null ? "" : grupo;
+            this.materia = materia == null ? "" : materia;
+            this.motivo = motivo == null ? "" : motivo;
+            this.descripcion = descripcion == null ? "" : descripcion;
+            this.estado = estado == null ? "" : estado;
         }
 
-        public String getFecha() { return fecha; }
-        public String getGrupo() { return grupo; }
-        public String getMateria() { return materia; }
-        public String getMotivo() { return motivo; }
-        public String getDescripcion() { return descripcion; }
-        public String getEstado() { return estado; }
+        public String getFecha() {
+            return fecha;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public String getDescripcion() {
+            return descripcion;
+        }
+
+        public String getEstado() {
+            return estado;
+        }
     }
 }

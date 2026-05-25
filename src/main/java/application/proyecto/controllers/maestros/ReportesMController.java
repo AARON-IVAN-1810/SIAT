@@ -75,22 +75,26 @@ public class ReportesMController extends BaseController {
     }
 
     private void configurarCombos() {
-        cbFiltroMotivo.setItems(FXCollections.observableArrayList(
-                "todos",
-                "asistencia",
-                "actividad",
-                "conducta"
-        ));
+        if (cbFiltroMotivo != null) {
+            cbFiltroMotivo.setItems(FXCollections.observableArrayList(
+                    "todos",
+                    "asistencia",
+                    "actividad",
+                    "conducta"
+            ));
 
-        cbFiltroEstado.setItems(FXCollections.observableArrayList(
-                "todos",
-                "pendiente",
-                "seguimiento",
-                "cerrado"
-        ));
+            cbFiltroMotivo.setValue("todos");
+        }
 
-        cbFiltroMotivo.setValue("todos");
-        cbFiltroEstado.setValue("todos");
+        if (cbFiltroEstado != null) {
+            cbFiltroEstado.setItems(FXCollections.observableArrayList(
+                    "todos",
+                    "pendiente",
+                    "cerrado"
+            ));
+
+            cbFiltroEstado.setValue("todos");
+        }
     }
 
     private void configurarEventos() {
@@ -105,42 +109,76 @@ public class ReportesMController extends BaseController {
             if (grupo != null) {
                 txtTurno.setText(grupo.getTurno());
                 cargarMaterias(grupo.getIdGrupoCiclo());
-                cargarAlumnos(grupo.getIdGrupoCiclo());
             } else {
                 txtTurno.clear();
             }
         });
 
-        btnGenerarReporte.setOnAction(event -> handleGenerarReporte());
+        cbMateria.setOnAction(event -> {
+            cbAlumno.getItems().clear();
+            cbAlumno.setValue(null);
 
-        txtBuscarTabla.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
-        cbFiltroMotivo.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
-        cbFiltroEstado.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+            MateriaItem materia = cbMateria.getValue();
+
+            if (materia != null) {
+                cargarAlumnosPorClase(materia.getIdCarga());
+            }
+        });
+
+        if (btnGenerarReporte != null) {
+            btnGenerarReporte.setOnAction(event -> handleGenerarReporte());
+        }
+
+        if (txtBuscarSuperior != null) {
+            txtBuscarSuperior.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (txtBuscarTabla != null) {
+            txtBuscarTabla.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (cbFiltroMotivo != null) {
+            cbFiltroMotivo.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
+
+        if (cbFiltroEstado != null) {
+            cbFiltroEstado.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        }
     }
 
     private void cargarGrupos() {
         cbGrupo.getItems().clear();
+
+        int idMaestro = getIdMaestroActual();
+
+        if (idMaestro == 0) {
+            mostrarError("no hay maestro en sesion");
+            return;
+        }
 
         String sql = """
                 select distinct
                 gc.id_grupo_ciclo,
                 g.nombre as grupo,
                 g.semestre,
-                ct.nombre as turno
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_estatus_general=1
                 and gc.id_estatus_general=1
-                order by g.semestre,g.nombre
+                and g.id_estatus_general=1
+                order by ce.nombre desc,g.semestre,g.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdMaestroActual());
+            ps.setInt(1, idMaestro);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -148,7 +186,8 @@ public class ReportesMController extends BaseController {
                             rs.getInt("id_grupo_ciclo"),
                             rs.getString("grupo"),
                             rs.getInt("semestre"),
-                            rs.getString("turno")
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -162,29 +201,45 @@ public class ReportesMController extends BaseController {
     private void cargarMaterias(int idGrupoCiclo) {
         cbMateria.getItems().clear();
 
+        int idMaestro = getIdMaestroActual();
+
         String sql = """
                 select
                 c.id_carga,
-                m.nombre as materia
+                m.nombre as materia,
+                m.clave,
+                g.nombre as grupo,
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_grupo_ciclo=?
                 and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
                 order by m.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdMaestroActual());
+            ps.setInt(1, idMaestro);
             ps.setInt(2, idGrupoCiclo);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     cbMateria.getItems().add(new MateriaItem(
                             rs.getInt("id_carga"),
-                            rs.getString("materia")
+                            rs.getString("materia"),
+                            rs.getString("clave"),
+                            rs.getString("grupo"),
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -195,24 +250,29 @@ public class ReportesMController extends BaseController {
         }
     }
 
-    private void cargarAlumnos(int idGrupoCiclo) {
+    private void cargarAlumnosPorClase(int idCarga) {
         cbAlumno.getItems().clear();
 
         String sql = """
                 select
-                id_alumno,
-                num_control,
-                concat(nombre,' ',apellido_paterno,' ',apellido_materno) as alumno
-                from alumno
-                where id_grupo_ciclo=?
-                and id_estatus_general=1
-                order by apellido_paterno,apellido_materno,nombre
+                al.id_alumno,
+                al.num_control,
+                concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno
+                from alumno_carga ac
+                inner join alumno al on ac.id_alumno=al.id_alumno
+                inner join carga c on ac.id_carga=c.id_carga
+                where ac.id_carga=?
+                and c.id_maestro=?
+                and ac.id_estatus_general=1
+                and al.id_estatus_general=1
+                order by al.apellido_paterno,al.apellido_materno,al.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, idGrupoCiclo);
+            ps.setInt(1, idCarga);
+            ps.setInt(2, getIdMaestroActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -226,7 +286,7 @@ public class ReportesMController extends BaseController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al cargar alumnos");
+            mostrarError("error al cargar alumnos de la clase");
         }
     }
 
@@ -236,7 +296,7 @@ public class ReportesMController extends BaseController {
         String sql = """
                 select id_tipo_alerta,nombre
                 from cat_tipo_alerta
-                where nombre in ('asistencia','actividad','conducta')
+                where nombre in ('asistencia','actividad','calificacion','conducta')
                 order by id_tipo_alerta
                 """;
 
@@ -258,38 +318,73 @@ public class ReportesMController extends BaseController {
     }
 
     private void cargarAlertaSeleccionada() {
-        if (SesionAlerta.getIdAlerta() == 0) {
+        if (SesionAlerta.getIdAlerta() == 0 || SesionAlerta.getIdCarga() == 0) {
             return;
         }
 
-        GrupoItem grupoEncontrado = null;
+        int idGrupoCiclo = obtenerIdGrupoCicloPorCarga(SesionAlerta.getIdCarga());
 
-        for (GrupoItem grupo : cbGrupo.getItems()) {
-            if (grupo.getNombre().equalsIgnoreCase(SesionAlerta.getGrupo())) {
-                grupoEncontrado = grupo;
-                break;
-            }
+        if (idGrupoCiclo == 0) {
+            mostrarError("no se encontro la clase de la alerta seleccionada");
+            return;
         }
 
-        if (grupoEncontrado == null) {
+        seleccionarGrupoPorId(idGrupoCiclo);
+
+        GrupoItem grupo = cbGrupo.getValue();
+
+        if (grupo == null) {
             mostrarError("no se encontro el grupo de la alerta seleccionada");
             return;
         }
 
-        cbGrupo.setValue(grupoEncontrado);
-        txtTurno.setText(grupoEncontrado.getTurno());
+        txtTurno.setText(grupo.getTurno());
 
-        cargarMaterias(grupoEncontrado.getIdGrupoCiclo());
-        cargarAlumnos(grupoEncontrado.getIdGrupoCiclo());
-
+        cargarMaterias(grupo.getIdGrupoCiclo());
         seleccionarMateriaPorIdCarga(SesionAlerta.getIdCarga());
+
+        MateriaItem materia = cbMateria.getValue();
+
+        if (materia != null) {
+            cargarAlumnosPorClase(materia.getIdCarga());
+        }
+
         seleccionarAlumnoPorId(SesionAlerta.getIdAlumno());
         seleccionarMotivoPorNombre(SesionAlerta.getMotivo());
     }
 
-    private void seleccionarGrupoPorNombre(String grupoNombre) {
+    private int obtenerIdGrupoCicloPorCarga(int idCarga) {
+        String sql = """
+                select id_grupo_ciclo
+                from carga
+                where id_carga=?
+                and id_maestro=?
+                limit 1
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idCarga);
+            ps.setInt(2, getIdMaestroActual());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_grupo_ciclo");
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al buscar la clase de la alerta");
+        }
+
+        return 0;
+    }
+
+    private void seleccionarGrupoPorId(int idGrupoCiclo) {
         for (GrupoItem grupo : cbGrupo.getItems()) {
-            if (grupo.getNombre().equalsIgnoreCase(grupoNombre)) {
+            if (grupo.getIdGrupoCiclo() == idGrupoCiclo) {
                 cbGrupo.setValue(grupo);
                 return;
             }
@@ -315,6 +410,10 @@ public class ReportesMController extends BaseController {
     }
 
     private void seleccionarMotivoPorNombre(String motivoNombre) {
+        if (motivoNombre == null) {
+            return;
+        }
+
         for (TipoAlertaItem motivo : cbMotivo.getItems()) {
             if (motivo.getNombre().equalsIgnoreCase(motivoNombre)) {
                 cbMotivo.setValue(motivo);
@@ -332,7 +431,7 @@ public class ReportesMController extends BaseController {
         String descripcion = txtDescripcion.getText() == null ? "" : txtDescripcion.getText().trim();
 
         if (materia == null || grupo == null || alumno == null || motivo == null || descripcion.isEmpty()) {
-            mostrarError("captura materia, grupo, alumno, motivo y descripcion");
+            mostrarError("captura grupo, materia, alumno, motivo y descripcion");
             return;
         }
 
@@ -349,8 +448,8 @@ public class ReportesMController extends BaseController {
 
             insertarReporte(con, idAlertaParaReporte, alumno, materia, motivo, descripcion);
 
-            if (SesionAlerta.getIdAlerta() > 0) {
-                actualizarAlertaSeguimiento(con, SesionAlerta.getIdAlerta());
+            if (idAlertaParaReporte > 0) {
+                actualizarAlertaSeguimiento(con, idAlertaParaReporte);
             }
 
             con.commit();
@@ -384,7 +483,7 @@ public class ReportesMController extends BaseController {
             ps.setInt(2, materia.getIdCarga());
             ps.setInt(3, motivo.getIdTipoAlerta());
             ps.setInt(4, 2);
-            ps.setString(5, "un maestro ha detectado una conducta inusual en el alumno");
+            ps.setString(5, "un maestro genero una alerta de conducta para este alumno");
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -428,7 +527,7 @@ public class ReportesMController extends BaseController {
     private void actualizarAlertaSeguimiento(Connection con, int idAlerta) throws Exception {
         String sql = """
                 update alerta
-                set id_estatus_alerta=1
+                set id_estatus_alerta=2
                 where id_alerta=?
                 """;
 
@@ -445,9 +544,9 @@ public class ReportesMController extends BaseController {
                 select
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as nombre_alumno,
-                g.nombre as grupo,
+                concat(g.nombre,' - ',ce.nombre) as grupo,
                 ct.nombre as turno,
-                m.nombre as materia,
+                concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 rd.descripcion,
                 cer.nombre as estado
@@ -458,6 +557,7 @@ public class ReportesMController extends BaseController {
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_reporte_docente cer on rd.id_estatus_reporte_docente=cer.id_estatus_reporte_docente
                 where c.id_maestro=?
@@ -484,6 +584,8 @@ public class ReportesMController extends BaseController {
                 }
             }
 
+            aplicarFiltro();
+
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al cargar reportes");
@@ -491,21 +593,32 @@ public class ReportesMController extends BaseController {
     }
 
     private void aplicarFiltro() {
-        String texto = txtBuscarTabla.getText() == null
+        if (listaFiltrada == null) {
+            return;
+        }
+
+        String textoTabla = txtBuscarTabla == null || txtBuscarTabla.getText() == null
                 ? ""
                 : txtBuscarTabla.getText().toLowerCase().trim();
 
-        String motivo = cbFiltroMotivo.getValue() == null
+        String textoSuperior = txtBuscarSuperior == null || txtBuscarSuperior.getText() == null
+                ? ""
+                : txtBuscarSuperior.getText().toLowerCase().trim();
+
+        String texto = (textoTabla + " " + textoSuperior).trim();
+
+        String motivo = cbFiltroMotivo == null || cbFiltroMotivo.getValue() == null
                 ? "todos"
                 : cbFiltroMotivo.getValue().toLowerCase().trim();
 
-        String estado = cbFiltroEstado.getValue() == null
+        String estado = cbFiltroEstado == null || cbFiltroEstado.getValue() == null
                 ? "todos"
                 : cbFiltroEstado.getValue().toLowerCase().trim();
 
         listaFiltrada.setPredicate(reporte -> {
             boolean coincideTexto =
-                    reporte.getNumControl().toLowerCase().contains(texto) ||
+                    texto.isEmpty() ||
+                            reporte.getNumControl().toLowerCase().contains(texto) ||
                             reporte.getNombreAlumno().toLowerCase().contains(texto) ||
                             reporte.getGrupo().toLowerCase().contains(texto) ||
                             reporte.getTurno().toLowerCase().contains(texto) ||
@@ -514,9 +627,13 @@ public class ReportesMController extends BaseController {
                             reporte.getDescripcion().toLowerCase().contains(texto) ||
                             reporte.getEstado().toLowerCase().contains(texto);
 
+            String motivoReporte = reporte.getMotivo().toLowerCase();
+
             boolean coincideMotivo =
                     motivo.equals("todos") ||
-                            reporte.getMotivo().toLowerCase().equals(motivo);
+                            motivoReporte.equals(motivo) ||
+                            (motivo.equals("actividad") && motivoReporte.equals("calificacion")) ||
+                            (motivo.equals("calificacion") && motivoReporte.equals("actividad"));
 
             boolean coincideEstado =
                     estado.equals("todos") ||
@@ -527,8 +644,10 @@ public class ReportesMController extends BaseController {
     }
 
     private void limpiarFormulario() {
-        cbMateria.setValue(null);
         cbGrupo.setValue(null);
+        cbMateria.getItems().clear();
+        cbMateria.setValue(null);
+        cbAlumno.getItems().clear();
         cbAlumno.setValue(null);
         cbMotivo.setValue(null);
         txtTurno.clear();
@@ -556,38 +675,58 @@ public class ReportesMController extends BaseController {
         private final String nombre;
         private final int semestre;
         private final String turno;
+        private final String ciclo;
 
-        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno) {
+        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno, String ciclo) {
             this.idGrupoCiclo = idGrupoCiclo;
-            this.nombre = nombre;
+            this.nombre = nombre == null ? "" : nombre;
             this.semestre = semestre;
-            this.turno = turno;
+            this.turno = turno == null ? "" : turno;
+            this.ciclo = ciclo == null ? "" : ciclo;
         }
 
-        public int getIdGrupoCiclo() { return idGrupoCiclo; }
-        public String getNombre() { return nombre; }
-        public String getTurno() { return turno; }
+        public int getIdGrupoCiclo() {
+            return idGrupoCiclo;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
 
         @Override
         public String toString() {
-            return nombre + " - " + semestre + " semestre";
+            return nombre + " - " + turno + " - " + ciclo;
         }
     }
 
     public static class MateriaItem {
         private final int idCarga;
         private final String nombre;
+        private final String clave;
+        private final String grupo;
+        private final String turno;
+        private final String ciclo;
 
-        public MateriaItem(int idCarga, String nombre) {
+        public MateriaItem(int idCarga, String nombre, String clave, String grupo, String turno, String ciclo) {
             this.idCarga = idCarga;
-            this.nombre = nombre;
+            this.nombre = nombre == null ? "" : nombre;
+            this.clave = clave == null ? "" : clave;
+            this.grupo = grupo == null ? "" : grupo;
+            this.turno = turno == null ? "" : turno;
+            this.ciclo = ciclo == null ? "" : ciclo;
         }
 
-        public int getIdCarga() { return idCarga; }
+        public int getIdCarga() {
+            return idCarga;
+        }
 
         @Override
         public String toString() {
-            return nombre;
+            return clave + " - " + nombre;
         }
     }
 
@@ -598,11 +737,13 @@ public class ReportesMController extends BaseController {
 
         public AlumnoItem(int idAlumno, String numControl, String nombre) {
             this.idAlumno = idAlumno;
-            this.numControl = numControl;
-            this.nombre = nombre;
+            this.numControl = numControl == null ? "" : numControl;
+            this.nombre = nombre == null ? "" : nombre;
         }
 
-        public int getIdAlumno() { return idAlumno; }
+        public int getIdAlumno() {
+            return idAlumno;
+        }
 
         @Override
         public String toString() {
@@ -616,11 +757,16 @@ public class ReportesMController extends BaseController {
 
         public TipoAlertaItem(int idTipoAlerta, String nombre) {
             this.idTipoAlerta = idTipoAlerta;
-            this.nombre = nombre;
+            this.nombre = nombre == null ? "" : nombre;
         }
 
-        public int getIdTipoAlerta() { return idTipoAlerta; }
-        public String getNombre() { return nombre; }
+        public int getIdTipoAlerta() {
+            return idTipoAlerta;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
 
         @Override
         public String toString() {
@@ -639,23 +785,46 @@ public class ReportesMController extends BaseController {
         private final String estado;
 
         public ReporteItem(String numControl, String nombreAlumno, String grupo, String turno, String materia, String motivo, String descripcion, String estado) {
-            this.numControl = numControl;
-            this.nombreAlumno = nombreAlumno;
-            this.grupo = grupo;
-            this.turno = turno;
-            this.materia = materia;
-            this.motivo = motivo;
-            this.descripcion = descripcion;
-            this.estado = estado;
+            this.numControl = numControl == null ? "" : numControl;
+            this.nombreAlumno = nombreAlumno == null ? "" : nombreAlumno;
+            this.grupo = grupo == null ? "" : grupo;
+            this.turno = turno == null ? "" : turno;
+            this.materia = materia == null ? "" : materia;
+            this.motivo = motivo == null ? "" : motivo;
+            this.descripcion = descripcion == null ? "" : descripcion;
+            this.estado = estado == null ? "" : estado;
         }
 
-        public String getNumControl() { return numControl; }
-        public String getNombreAlumno() { return nombreAlumno; }
-        public String getGrupo() { return grupo; }
-        public String getTurno() { return turno; }
-        public String getMateria() { return materia; }
-        public String getMotivo() { return motivo; }
-        public String getDescripcion() { return descripcion; }
-        public String getEstado() { return estado; }
+        public String getNumControl() {
+            return numControl;
+        }
+
+        public String getNombreAlumno() {
+            return nombreAlumno;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getMateria() {
+            return materia;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public String getDescripcion() {
+            return descripcion;
+        }
+
+        public String getEstado() {
+            return estado;
+        }
     }
 }

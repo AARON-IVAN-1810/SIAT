@@ -12,6 +12,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class UsuariosYRolesJDMController extends BaseController {
 
@@ -77,6 +78,8 @@ public class UsuariosYRolesJDMController extends BaseController {
 
             if (newValue != null) {
                 cargarDatosMaestro(newValue.getId());
+            } else {
+                limpiarDatosMaestro();
             }
         });
 
@@ -131,6 +134,7 @@ public class UsuariosYRolesJDMController extends BaseController {
                 from maestro m
                 left join usuario u on m.id_usuario=u.id_usuario
                 where m.id_maestro=?
+                limit 1
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -140,15 +144,15 @@ public class UsuariosYRolesJDMController extends BaseController {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    txtNombreMaestro.setText(rs.getString("maestro"));
-                    txtNumeroEmpleado.setText(rs.getString("num_empleado"));
+                    txtNombreMaestro.setText(texto(rs.getString("maestro")));
+                    txtNumeroEmpleado.setText(texto(rs.getString("num_empleado")));
 
                     String usuario = rs.getString("usuario");
                     txtUsuario.setText(usuario == null || usuario.isBlank() ? rs.getString("num_empleado") : usuario);
 
                     int idUsuario = rs.getInt("id_usuario");
 
-                    if (!rs.wasNull()) {
+                    if (!rs.wasNull() && idUsuario > 0) {
                         cargarRolesUsuario(idUsuario);
                     }
                 }
@@ -161,6 +165,8 @@ public class UsuariosYRolesJDMController extends BaseController {
     }
 
     private void cargarRolesUsuario(int idUsuario) {
+        limpiarRoles();
+
         String sql = """
                 select r.nombre
                 from usuario_rol ur
@@ -203,12 +209,13 @@ public class UsuariosYRolesJDMController extends BaseController {
         String sql = """
                 select
                 m.id_maestro,
-                m.id_usuario,
+                ifnull(m.id_usuario,0) as id_usuario,
                 concat(m.nombre,' ',m.apellido_paterno,' ',m.apellido_materno) as maestro,
                 m.num_empleado,
                 ifnull(u.usuario,m.num_empleado) as usuario,
                 ifnull(group_concat(r.nombre order by r.nombre separator ', '),'sin roles') as roles,
                 case
+                when m.id_usuario is null then 'sin usuario'
                 when u.password_hash is null or u.password_hash='' then 'pendiente de contrasena'
                 else 'activo'
                 end as acceso,
@@ -257,8 +264,8 @@ public class UsuariosYRolesJDMController extends BaseController {
     private void cargarResumen() {
         String sql = """
                 select
-                count(case when m.id_usuario is not null and m.id_estatus_general=1 then 1 end) as usuarios_activos,
-                count(case when m.id_usuario is not null and (u.password_hash is null or u.password_hash='') then 1 end) as pendientes,
+                count(distinct case when m.id_usuario is not null and u.id_estatus_general=1 then u.id_usuario end) as usuarios_activos,
+                count(distinct case when m.id_usuario is not null and (u.password_hash is null or u.password_hash='') then u.id_usuario end) as pendientes,
                 count(distinct case when r.nombre='tutor' and m.id_estatus_general=1 then m.id_maestro end) as tutores
                 from maestro m
                 left join usuario u on m.id_usuario=u.id_usuario
@@ -297,51 +304,116 @@ public class UsuariosYRolesJDMController extends BaseController {
         try (Connection con = ConexionBD.conectar()) {
             con.setAutoCommit(false);
 
-            int idUsuario = obtenerIdUsuarioMaestro(con, maestroSeleccionado.getId());
-
-            if (idUsuario == 0) {
-                mostrarError("este maestro no tiene usuario creado. revisa el registro del maestro");
-                con.rollback();
-                return;
-            }
+            int idUsuario = obtenerOCrearIdUsuarioMaestro(con, maestroSeleccionado.getId());
 
             actualizarRoles(con, idUsuario);
 
             con.commit();
 
-            mostrarInfo("roles actualizados correctamente");
+            mostrarInfo("usuario y roles actualizados correctamente");
             limpiarFormulario();
+            cargarMaestros();
             cargarUsuarios();
             cargarResumen();
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al guardar roles");
+            mostrarError("error al guardar usuario y roles");
         }
     }
 
-    private int obtenerIdUsuarioMaestro(Connection con, int idMaestro) throws Exception {
-        String sql = """
-                select id_usuario
-                from maestro
-                where id_maestro=?
+    private int obtenerOCrearIdUsuarioMaestro(Connection con, int idMaestro) throws Exception {
+        String sqlBuscar = """
+                select
+                m.id_usuario,
+                m.num_empleado
+                from maestro m
+                where m.id_maestro=?
+                limit 1
                 """;
 
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
+        int idUsuario = 0;
+        String numeroEmpleado = "";
+
+        try (PreparedStatement ps = con.prepareStatement(sqlBuscar)) {
             ps.setInt(1, idMaestro);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    int idUsuario = rs.getInt("id_usuario");
+                    idUsuario = rs.getInt("id_usuario");
 
-                    if (!rs.wasNull()) {
-                        return idUsuario;
+                    if (rs.wasNull()) {
+                        idUsuario = 0;
                     }
+
+                    numeroEmpleado = rs.getString("num_empleado");
                 }
             }
         }
 
-        return 0;
+        if (idUsuario > 0) {
+            activarUsuario(con, idUsuario);
+            return idUsuario;
+        }
+
+        if (numeroEmpleado == null || numeroEmpleado.isBlank()) {
+            throw new Exception("el maestro no tiene numero de empleado");
+        }
+
+        String sqlUsuario = """
+                insert into usuario(
+                usuario,
+                password_hash,
+                pregunta_1,
+                respuesta_1,
+                pregunta_2,
+                respuesta_2,
+                id_estatus_general
+                )
+                values(?,'000','color favorito','azul','pelicula favorita','avatar',1)
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sqlUsuario, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, numeroEmpleado);
+            ps.executeUpdate();
+
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    idUsuario = rs.getInt(1);
+                }
+            }
+        }
+
+        if (idUsuario == 0) {
+            throw new Exception("no se pudo crear el usuario");
+        }
+
+        String sqlActualizarMaestro = """
+                update maestro
+                set id_usuario=?
+                where id_maestro=?
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sqlActualizarMaestro)) {
+            ps.setInt(1, idUsuario);
+            ps.setInt(2, idMaestro);
+            ps.executeUpdate();
+        }
+
+        return idUsuario;
+    }
+
+    private void activarUsuario(Connection con, int idUsuario) throws Exception {
+        String sql = """
+                update usuario
+                set id_estatus_general=1
+                where id_usuario=?
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idUsuario);
+            ps.executeUpdate();
+        }
     }
 
     private void actualizarRoles(Connection con, int idUsuario) throws Exception {
@@ -413,6 +485,7 @@ public class UsuariosYRolesJDMController extends BaseController {
 
             mostrarInfo("estatus actualizado correctamente");
             limpiarFormulario();
+            cargarMaestros();
             cargarUsuarios();
             cargarResumen();
 
@@ -439,6 +512,7 @@ public class UsuariosYRolesJDMController extends BaseController {
             boolean coincideTexto =
                     usuario.getMaestro().toLowerCase().contains(texto) ||
                             usuario.getNumeroEmpleado().toLowerCase().contains(texto) ||
+                            usuario.getUsuario().toLowerCase().contains(texto) ||
                             usuario.getRoles().toLowerCase().contains(texto) ||
                             usuario.getAcceso().toLowerCase().contains(texto);
 
@@ -461,9 +535,7 @@ public class UsuariosYRolesJDMController extends BaseController {
 
     private void limpiarFormulario() {
         cbMaestroUsuario.setValue(null);
-        txtUsuario.clear();
-        txtNombreMaestro.clear();
-        txtNumeroEmpleado.clear();
+        limpiarDatosMaestro();
         limpiarRoles();
 
         usuarioSeleccionado = null;
@@ -471,10 +543,20 @@ public class UsuariosYRolesJDMController extends BaseController {
         tablaUsuarios.getSelectionModel().clearSelection();
     }
 
+    private void limpiarDatosMaestro() {
+        txtUsuario.clear();
+        txtNombreMaestro.clear();
+        txtNumeroEmpleado.clear();
+    }
+
     private void limpiarRoles() {
         chkRolMaestro.setSelected(false);
         chkRolTutor.setSelected(false);
         chkRolJefeMaestros.setSelected(false);
+    }
+
+    private String texto(String valor) {
+        return valor == null ? "" : valor;
     }
 
     private void mostrarError(String mensaje) {
@@ -506,6 +588,10 @@ public class UsuariosYRolesJDMController extends BaseController {
             return id;
         }
 
+        public String getNombre() {
+            return nombre;
+        }
+
         @Override
         public String toString() {
             return nombre;
@@ -525,12 +611,16 @@ public class UsuariosYRolesJDMController extends BaseController {
         public UsuarioRolJDM(int idMaestro, int idUsuario, String maestro, String numeroEmpleado, String usuario, String roles, String acceso, String estatus) {
             this.idMaestro = idMaestro;
             this.idUsuario = idUsuario;
-            this.maestro = maestro;
-            this.numeroEmpleado = numeroEmpleado;
-            this.usuario = usuario;
-            this.roles = roles;
-            this.acceso = acceso;
-            this.estatus = estatus;
+            this.maestro = textoSeguro(maestro);
+            this.numeroEmpleado = textoSeguro(numeroEmpleado);
+            this.usuario = textoSeguro(usuario);
+            this.roles = textoSeguro(roles);
+            this.acceso = textoSeguro(acceso);
+            this.estatus = textoSeguro(estatus);
+        }
+
+        private static String textoSeguro(String valor) {
+            return valor == null ? "" : valor;
         }
 
         public int getIdMaestro() {

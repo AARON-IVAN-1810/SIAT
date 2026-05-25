@@ -70,8 +70,10 @@ public class InicioTController extends BaseController {
                 "todos",
                 "asistencia",
                 "actividad",
+                "calificacion",
                 "conducta"
         ));
+
         cmbTipoFiltro.setValue("todos");
     }
 
@@ -89,16 +91,23 @@ public class InicioTController extends BaseController {
             return;
         }
 
-        String sql = """
+        String sqlAlertas = """
                 select
-                count(case when a.id_estatus_alerta in (1,2) then 1 end) as alertas_activas,
-                count(case when a.id_estatus_alerta=2 then 1 end) as casos_seguimiento,
-                count(case when a.id_estatus_alerta=0 then 1 end) as casos_cerrados
+                count(distinct case when a.id_estatus_alerta in (1,2) then a.id_alerta end) as alertas_activas,
+                count(distinct case when a.id_estatus_alerta=2 then a.id_alerta end) as casos_seguimiento,
+                count(distinct case when a.id_estatus_alerta=0 then a.id_alerta end) as casos_cerrados
                 from tutoria_asignacion ta
-                inner join alumno al on al.id_grupo_ciclo=ta.id_grupo_ciclo
-                inner join alerta a on a.id_alumno=al.id_alumno
+                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
+                inner join alerta a on c.id_carga=a.id_carga
+                inner join alumno al on a.id_alumno=al.id_alumno
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                and al.id_estatus_general=1
                 """;
 
         String sqlIntervenciones = """
@@ -109,7 +118,7 @@ public class InicioTController extends BaseController {
                 """;
 
         try (Connection con = ConexionBD.conectar()) {
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
+            try (PreparedStatement ps = con.prepareStatement(sqlAlertas)) {
                 ps.setInt(1, idTutor);
 
                 try (ResultSet rs = ps.executeQuery()) {
@@ -138,26 +147,45 @@ public class InicioTController extends BaseController {
     }
 
     private void cargarGruposFiltro() {
+        cmbGrupoFiltro.getItems().clear();
+        cmbGrupoFiltro.getItems().add("todos");
+
+        int idTutor = getIdTutorActual();
+
+        if (idTutor == 0) {
+            mostrarError("no hay tutor en sesion");
+            return;
+        }
+
         String sql = """
-                select distinct g.nombre as grupo
+                select distinct
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
                 from tutoria_asignacion ta
                 inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join carga c on gc.id_grupo_ciclo=c.id_grupo_ciclo
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by g.nombre
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                order by grupo
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdTutorActual());
+            ps.setInt(1, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     cmbGrupoFiltro.getItems().add(rs.getString("grupo"));
                 }
             }
+
+            cmbGrupoFiltro.setValue("todos");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -168,31 +196,47 @@ public class InicioTController extends BaseController {
     private void cargarAlertas() {
         listaAlertas.clear();
 
+        int idTutor = getIdTutorActual();
+
+        if (idTutor == 0) {
+            mostrarError("no hay tutor en sesion");
+            return;
+        }
+
         String sql = """
-                select
+                select distinct
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
-                g.nombre as grupo,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre,' | ',m.clave,' - ',m.nombre) as grupo,
                 cta.nombre as tipo_alerta,
                 cpa.nombre as prioridad,
                 cea.nombre as estatus,
+                a.creada_en as fecha_orden,
                 date_format(a.creada_en,'%Y-%m-%d') as fecha
                 from tutoria_asignacion ta
-                inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join alumno al on al.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join alerta a on a.id_alumno=al.id_alumno
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join alerta a on c.id_carga=a.id_carga
+                inner join alumno al on a.id_alumno=al.id_alumno
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_prioridad_alerta cpa on a.id_prioridad_alerta=cpa.id_prioridad_alerta
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
                 where ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
-                order by a.creada_en desc
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                and al.id_estatus_general=1
+                order by fecha_orden desc
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdTutorActual());
+            ps.setInt(1, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -207,6 +251,8 @@ public class InicioTController extends BaseController {
                 }
             }
 
+            aplicarFiltro();
+
         } catch (Exception e) {
             e.printStackTrace();
             mostrarError("error al cargar alertas del tutor");
@@ -214,25 +260,36 @@ public class InicioTController extends BaseController {
     }
 
     private void aplicarFiltro() {
-        String texto = txtBuscarTabla.getText() == null ? "" : txtBuscarTabla.getText().toLowerCase();
-        String grupo = cmbGrupoFiltro.getValue() == null ? "todos" : cmbGrupoFiltro.getValue().toLowerCase();
-        String tipo = cmbTipoFiltro.getValue() == null ? "todos" : cmbTipoFiltro.getValue().toLowerCase();
+        if (listaFiltrada == null) {
+            return;
+        }
+
+        String texto = txtBuscarTabla.getText() == null ? "" : txtBuscarTabla.getText().toLowerCase().trim();
+        String grupo = cmbGrupoFiltro.getValue() == null ? "todos" : cmbGrupoFiltro.getValue().toLowerCase().trim();
+        String tipo = cmbTipoFiltro.getValue() == null ? "todos" : cmbTipoFiltro.getValue().toLowerCase().trim();
 
         listaFiltrada.setPredicate(alerta -> {
             boolean coincideTexto =
-                    alerta.getAlumno().toLowerCase().contains(texto) ||
+                    texto.isEmpty() ||
+                            alerta.getAlumno().toLowerCase().contains(texto) ||
                             alerta.getGrupo().toLowerCase().contains(texto) ||
                             alerta.getTipoAlerta().toLowerCase().contains(texto) ||
                             alerta.getPrioridad().toLowerCase().contains(texto) ||
-                            alerta.getEstatus().toLowerCase().contains(texto);
+                            alerta.getEstatus().toLowerCase().contains(texto) ||
+                            alerta.getFecha().toLowerCase().contains(texto);
+
+            String grupoAlerta = alerta.getGrupo().toLowerCase();
+            String tipoAlerta = alerta.getTipoAlerta().toLowerCase();
 
             boolean coincideGrupo =
                     grupo.equals("todos") ||
-                            alerta.getGrupo().toLowerCase().equals(grupo);
+                            grupoAlerta.contains(grupo);
 
             boolean coincideTipo =
                     tipo.equals("todos") ||
-                            alerta.getTipoAlerta().toLowerCase().equals(tipo);
+                            tipoAlerta.equals(tipo) ||
+                            (tipo.equals("actividad") && tipoAlerta.equals("calificacion")) ||
+                            (tipo.equals("calificacion") && tipoAlerta.equals("actividad"));
 
             return coincideTexto && coincideGrupo && coincideTipo;
         });
@@ -255,19 +312,40 @@ public class InicioTController extends BaseController {
         private final String fecha;
 
         public AlertaTutor(String alumno, String grupo, String tipoAlerta, String prioridad, String estatus, String fecha) {
-            this.alumno = alumno;
-            this.grupo = grupo;
-            this.tipoAlerta = tipoAlerta;
-            this.prioridad = prioridad;
-            this.estatus = estatus;
-            this.fecha = fecha;
+            this.alumno = textoSeguro(alumno);
+            this.grupo = textoSeguro(grupo);
+            this.tipoAlerta = textoSeguro(tipoAlerta);
+            this.prioridad = textoSeguro(prioridad);
+            this.estatus = textoSeguro(estatus);
+            this.fecha = textoSeguro(fecha);
         }
 
-        public String getAlumno() { return alumno; }
-        public String getGrupo() { return grupo; }
-        public String getTipoAlerta() { return tipoAlerta; }
-        public String getPrioridad() { return prioridad; }
-        public String getEstatus() { return estatus; }
-        public String getFecha() { return fecha; }
+        private static String textoSeguro(String valor) {
+            return valor == null ? "" : valor;
+        }
+
+        public String getAlumno() {
+            return alumno;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTipoAlerta() {
+            return tipoAlerta;
+        }
+
+        public String getPrioridad() {
+            return prioridad;
+        }
+
+        public String getEstatus() {
+            return estatus;
+        }
+
+        public String getFecha() {
+            return fecha;
+        }
     }
 }

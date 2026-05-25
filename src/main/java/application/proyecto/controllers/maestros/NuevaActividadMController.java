@@ -71,15 +71,18 @@ public class NuevaActividadMController {
                 gc.id_grupo_ciclo,
                 g.nombre as grupo,
                 g.semestre,
-                ct.nombre as turno
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_estatus_general=1
                 and gc.id_estatus_general=1
-                order by g.semestre,g.nombre
+                and g.id_estatus_general=1
+                order by ce.nombre desc,g.semestre,g.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -93,7 +96,8 @@ public class NuevaActividadMController {
                             rs.getInt("id_grupo_ciclo"),
                             rs.getString("grupo"),
                             rs.getInt("semestre"),
-                            rs.getString("turno")
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -107,29 +111,45 @@ public class NuevaActividadMController {
     private void cargarMaterias(int idGrupoCiclo) {
         cbMateria.getItems().clear();
 
+        int idMaestro = getIdMaestroActual();
+
         String sql = """
                 select
                 c.id_carga,
-                m.nombre as materia
+                m.nombre as materia,
+                m.clave,
+                g.nombre as grupo,
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_grupo_ciclo=?
                 and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
                 order by m.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, getIdMaestroActual());
+            ps.setInt(1, idMaestro);
             ps.setInt(2, idGrupoCiclo);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     cbMateria.getItems().add(new MateriaItem(
                             rs.getInt("id_carga"),
-                            rs.getString("materia")
+                            rs.getString("materia"),
+                            rs.getString("clave"),
+                            rs.getString("grupo"),
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -291,12 +311,14 @@ public class NuevaActividadMController {
         private final String nombre;
         private final int semestre;
         private final String turno;
+        private final String ciclo;
 
-        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno) {
+        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno, String ciclo) {
             this.idGrupoCiclo = idGrupoCiclo;
             this.nombre = nombre;
             this.semestre = semestre;
             this.turno = turno;
+            this.ciclo = ciclo;
         }
 
         public int getIdGrupoCiclo() {
@@ -311,28 +333,60 @@ public class NuevaActividadMController {
             return turno;
         }
 
+        public String getCiclo() {
+            return ciclo;
+        }
+
         @Override
         public String toString() {
-            return nombre + " - " + semestre + " semestre";
+            return nombre + " - " + turno + " - " + ciclo;
         }
     }
 
     public static class MateriaItem {
         private final int idCarga;
         private final String nombre;
+        private final String clave;
+        private final String grupo;
+        private final String turno;
+        private final String ciclo;
 
-        public MateriaItem(int idCarga, String nombre) {
+        public MateriaItem(int idCarga, String nombre, String clave, String grupo, String turno, String ciclo) {
             this.idCarga = idCarga;
             this.nombre = nombre;
+            this.clave = clave;
+            this.grupo = grupo;
+            this.turno = turno;
+            this.ciclo = ciclo;
         }
 
         public int getIdCarga() {
             return idCarga;
         }
 
+        public String getNombre() {
+            return nombre;
+        }
+
+        public String getClave() {
+            return clave;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getCiclo() {
+            return ciclo;
+        }
+
         @Override
         public String toString() {
-            return nombre;
+            return clave + " - " + nombre;
         }
     }
 

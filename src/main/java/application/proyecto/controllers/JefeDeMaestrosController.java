@@ -60,6 +60,17 @@ public class JefeDeMaestrosController {
         cargarVista("/application/proyecto/views/jefedemaestros/PerfilUsuarioJDM.fxml");
     }
 
+    @FXML
+    private void selectCatalogoMateriasmaterias() {
+        cargarVista("/application/proyecto/views/jefedemaestros/CatalogoMateriasJDM.fxml");
+    }
+
+    @FXML
+    private void selectlinks() {
+        cargarVista("/application/proyecto/views/jefedemaestros/LinksInscripcionJDM.fxml");
+    }
+
+
     private void cargarVista(String ruta) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(ruta));

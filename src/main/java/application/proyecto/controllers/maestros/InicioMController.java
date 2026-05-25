@@ -43,7 +43,7 @@ public class InicioMController extends BaseController {
         configurarTablas();
         configurarFiltro();
         cargarMetricas();
-        cargarGrupos();
+        cargarClases();
         cargarAlertas();
         configurarBusquedaAlertas();
     }
@@ -73,6 +73,7 @@ public class InicioMController extends BaseController {
                 "asistencia",
                 "actividad"
         ));
+
         cbFiltroTipoAlerta.setValue("todas");
     }
 
@@ -85,42 +86,46 @@ public class InicioMController extends BaseController {
         }
 
         String sql = """
-            select
-            (
-                select count(*)
-                from carga c
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                where c.id_maestro=?
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-            ) as total_clases,
-            (
-                select count(distinct al.id_alumno)
-                from carga c
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join alumno al on al.id_grupo_ciclo=gc.id_grupo_ciclo
-                where c.id_maestro=?
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                and al.id_estatus_general=1
-            ) as total_alumnos,
-            (
-                select count(*)
-                from alerta a
-                inner join carga c on a.id_carga=c.id_carga
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                where c.id_maestro=?
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                and a.id_estatus_alerta in (1,2)
-            ) as total_alertas
-            """;
+                select
+                (
+                    select count(*)
+                    from carga c
+                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                    inner join grupo g on gc.id_grupo=g.id_grupo
+                    where c.id_maestro=?
+                    and c.id_estatus_general=1
+                    and gc.id_estatus_general=1
+                    and g.id_estatus_general=1
+                ) as total_clases,
+
+                (
+                    select count(distinct ac.id_alumno)
+                    from carga c
+                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                    inner join grupo g on gc.id_grupo=g.id_grupo
+                    inner join alumno_carga ac on c.id_carga=ac.id_carga
+                    inner join alumno al on ac.id_alumno=al.id_alumno
+                    where c.id_maestro=?
+                    and c.id_estatus_general=1
+                    and gc.id_estatus_general=1
+                    and g.id_estatus_general=1
+                    and ac.id_estatus_general=1
+                    and al.id_estatus_general=1
+                ) as total_alumnos,
+
+                (
+                    select count(*)
+                    from alerta a
+                    inner join carga c on a.id_carga=c.id_carga
+                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                    inner join grupo g on gc.id_grupo=g.id_grupo
+                    where c.id_maestro=?
+                    and c.id_estatus_general=1
+                    and gc.id_estatus_general=1
+                    and g.id_estatus_general=1
+                    and a.id_estatus_alerta in (1,2)
+                ) as total_alertas
+                """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -143,29 +148,45 @@ public class InicioMController extends BaseController {
         }
     }
 
-    private void cargarGrupos() {
+    private void cargarClases() {
         listaGrupos.clear();
 
         int idMaestro = getIdMaestroActual();
 
+        if (idMaestro == 0) {
+            mostrarError("no hay maestro en sesion");
+            return;
+        }
+
         String sql = """
-            select
-            g.nombre as codigo,
-            m.nombre as materia,
-            count(distinct al.id_alumno) as total_alumnos
-            from carga c
-            inner join materia m on c.id_materia=m.id_materia
-            inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-            inner join grupo g on gc.id_grupo=g.id_grupo
-            left join alumno al on al.id_grupo_ciclo=gc.id_grupo_ciclo
-            and al.id_estatus_general=1
-            where c.id_maestro=?
-            and c.id_estatus_general=1
-            and gc.id_estatus_general=1
-            and g.id_estatus_general=1
-            group by c.id_carga,g.nombre,m.nombre
-            order by g.nombre,m.nombre
-            """;
+                select
+                c.id_carga,
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as codigo,
+                concat(m.clave,' - ',m.nombre) as materia,
+                count(distinct ac.id_alumno) as total_alumnos
+                from carga c
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                left join alumno_carga ac on c.id_carga=ac.id_carga
+                and ac.id_estatus_general=1
+                left join alumno al on ac.id_alumno=al.id_alumno
+                and al.id_estatus_general=1
+                where c.id_maestro=?
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                group by
+                c.id_carga,
+                g.nombre,
+                ct.nombre,
+                ce.nombre,
+                m.clave,
+                m.nombre
+                order by ce.nombre desc,g.semestre,g.nombre,m.nombre
+                """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -175,6 +196,7 @@ public class InicioMController extends BaseController {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     listaGrupos.add(new GrupoMaestro(
+                            rs.getInt("id_carga"),
                             rs.getString("codigo"),
                             rs.getString("materia"),
                             rs.getInt("total_alumnos")
@@ -184,7 +206,7 @@ public class InicioMController extends BaseController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al cargar grupos");
+            mostrarError("error al cargar clases");
         }
     }
 
@@ -193,28 +215,35 @@ public class InicioMController extends BaseController {
 
         int idMaestro = getIdMaestroActual();
 
+        if (idMaestro == 0) {
+            mostrarError("no hay maestro en sesion");
+            return;
+        }
+
         String sql = """
-            select
-            g.nombre as grupo,
-            al.num_control,
-            concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as nombre_alumno,
-            m.nombre as materia,
-            cta.nombre as tipo_alerta
-            from alerta a
-            inner join alumno al on a.id_alumno=al.id_alumno
-            inner join carga c on a.id_carga=c.id_carga
-            inner join materia m on c.id_materia=m.id_materia
-            inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-            inner join grupo g on gc.id_grupo=g.id_grupo
-            inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
-            where c.id_maestro=?
-            and c.id_estatus_general=1
-            and gc.id_estatus_general=1
-            and g.id_estatus_general=1
-            and al.id_estatus_general=1
-            and a.id_estatus_alerta in (1,2)
-            order by g.nombre,m.nombre,nombre_alumno
-            """;
+                select
+                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                al.num_control,
+                concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as nombre_alumno,
+                concat(m.clave,' - ',m.nombre) as materia,
+                cta.nombre as tipo_alerta
+                from alerta a
+                inner join alumno al on a.id_alumno=al.id_alumno
+                inner join carga c on a.id_carga=c.id_carga
+                inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
+                where c.id_maestro=?
+                and c.id_estatus_general=1
+                and gc.id_estatus_general=1
+                and g.id_estatus_general=1
+                and al.id_estatus_general=1
+                and a.id_estatus_alerta in (1,2)
+                order by a.creada_en desc,g.nombre,m.nombre,nombre_alumno
+                """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -249,19 +278,23 @@ public class InicioMController extends BaseController {
     }
 
     private void aplicarFiltroAlertas(FilteredList<AlertaMaestro> filtro) {
-        String texto = txtBuscarAlertas.getText() == null ? "" : txtBuscarAlertas.getText().toLowerCase();
-        String tipo = cbFiltroTipoAlerta.getValue() == null ? "todas" : cbFiltroTipoAlerta.getValue().toLowerCase();
+        String texto = txtBuscarAlertas.getText() == null ? "" : txtBuscarAlertas.getText().toLowerCase().trim();
+        String tipo = cbFiltroTipoAlerta.getValue() == null ? "todas" : cbFiltroTipoAlerta.getValue().toLowerCase().trim();
 
         filtro.setPredicate(alerta -> {
             boolean coincideTexto =
                     alerta.getGrupo().toLowerCase().contains(texto) ||
                             alerta.getMateria().toLowerCase().contains(texto) ||
                             alerta.getNombreAlumno().toLowerCase().contains(texto) ||
-                            alerta.getNumControl().toLowerCase().contains(texto);
+                            alerta.getNumControl().toLowerCase().contains(texto) ||
+                            alerta.getTipoAlerta().toLowerCase().contains(texto);
+
+            String tipoAlerta = alerta.getTipoAlerta().toLowerCase();
 
             boolean coincideTipo =
                     tipo.equals("todas") ||
-                            alerta.getTipoAlerta().toLowerCase().equals(tipo);
+                            tipoAlerta.equals(tipo) ||
+                            (tipo.equals("actividad") && tipoAlerta.equals("calificacion"));
 
             return coincideTexto && coincideTipo;
         });
@@ -276,14 +309,20 @@ public class InicioMController extends BaseController {
     }
 
     public static class GrupoMaestro {
+        private final int idCarga;
         private final String codigo;
         private final String materia;
         private final int totalAlumnos;
 
-        public GrupoMaestro(String codigo, String materia, int totalAlumnos) {
-            this.codigo = codigo;
-            this.materia = materia;
+        public GrupoMaestro(int idCarga, String codigo, String materia, int totalAlumnos) {
+            this.idCarga = idCarga;
+            this.codigo = codigo == null ? "" : codigo;
+            this.materia = materia == null ? "" : materia;
             this.totalAlumnos = totalAlumnos;
+        }
+
+        public int getIdCarga() {
+            return idCarga;
         }
 
         public String getCodigo() {
@@ -307,11 +346,11 @@ public class InicioMController extends BaseController {
         private final String tipoAlerta;
 
         public AlertaMaestro(String grupo, String numControl, String nombreAlumno, String materia, String tipoAlerta) {
-            this.grupo = grupo;
-            this.numControl = numControl;
-            this.nombreAlumno = nombreAlumno;
-            this.materia = materia;
-            this.tipoAlerta = tipoAlerta;
+            this.grupo = grupo == null ? "" : grupo;
+            this.numControl = numControl == null ? "" : numControl;
+            this.nombreAlumno = nombreAlumno == null ? "" : nombreAlumno;
+            this.materia = materia == null ? "" : materia;
+            this.tipoAlerta = tipoAlerta == null ? "" : tipoAlerta;
         }
 
         public String getGrupo() {

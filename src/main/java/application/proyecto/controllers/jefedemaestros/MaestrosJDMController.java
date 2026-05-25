@@ -12,6 +12,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class MaestrosJDMController extends BaseController {
 
@@ -33,6 +34,7 @@ public class MaestrosJDMController extends BaseController {
     @FXML private TableColumn<MaestroJDM, String> colEstatusMaestro;
 
     private final ObservableList<MaestroJDM> listaMaestros = FXCollections.observableArrayList();
+
     private MaestroJDM maestroSeleccionado;
     private boolean modoEdicion = false;
 
@@ -70,6 +72,7 @@ public class MaestrosJDMController extends BaseController {
         String sql = """
                 select
                 m.id_maestro,
+                m.id_usuario,
                 m.nombre,
                 m.apellido_paterno,
                 m.apellido_materno,
@@ -89,6 +92,7 @@ public class MaestrosJDMController extends BaseController {
             while (rs.next()) {
                 listaMaestros.add(new MaestroJDM(
                         rs.getInt("id_maestro"),
+                        rs.getInt("id_usuario"),
                         rs.getString("nombre"),
                         rs.getString("apellido_paterno"),
                         rs.getString("apellido_materno"),
@@ -128,30 +132,45 @@ public class MaestrosJDMController extends BaseController {
 
     private void insertarMaestro(String nombre, String apellidoPaterno, String apellidoMaterno, String numeroEmpleado, String correo, String telefono) {
         String sqlUsuario = """
-            insert into usuario(usuario,password_hash,id_estatus_general)
-            values(?,null,1)
-            """;
+                insert into usuario(
+                usuario,
+                password_hash,
+                pregunta_1,
+                respuesta_1,
+                pregunta_2,
+                respuesta_2,
+                id_estatus_general
+                )
+                values(?,'000','color favorito','azul','pelicula favorita','avatar',1)
+                """;
 
         String sqlMaestro = """
-            insert into maestro(
-            id_usuario,
-            num_empleado,
-            nombre,
-            apellido_paterno,
-            apellido_materno,
-            correo,
-            telefono,
-            id_estatus_general
-            )
-            values(?,?,?,?,?,?,?,1)
-            """;
+                insert into maestro(
+                id_usuario,
+                num_empleado,
+                nombre,
+                apellido_paterno,
+                apellido_materno,
+                correo,
+                telefono,
+                id_estatus_general
+                )
+                values(?,?,?,?,?,?,?,1)
+                """;
+
+        String sqlUsuarioRol = """
+                insert into usuario_rol(id_usuario,id_rol)
+                values(?,?)
+                on duplicate key update id_rol=id_rol
+                """;
 
         try (Connection con = ConexionBD.conectar()) {
             con.setAutoCommit(false);
 
             int idUsuario = 0;
+            int idRolMaestro = obtenerIdRol(con, "maestro");
 
-            try (PreparedStatement ps = con.prepareStatement(sqlUsuario, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = con.prepareStatement(sqlUsuario, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, numeroEmpleado);
                 ps.executeUpdate();
 
@@ -160,6 +179,16 @@ public class MaestrosJDMController extends BaseController {
                         idUsuario = rs.getInt(1);
                     }
                 }
+            }
+
+            if (idUsuario == 0) {
+                throw new Exception("no se pudo crear el usuario");
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(sqlUsuarioRol)) {
+                ps.setInt(1, idUsuario);
+                ps.setInt(2, idRolMaestro);
+                ps.executeUpdate();
             }
 
             try (PreparedStatement ps = con.prepareStatement(sqlMaestro)) {
@@ -175,7 +204,7 @@ public class MaestrosJDMController extends BaseController {
 
             con.commit();
 
-            mostrarInfo("maestro guardado correctamente. acceso creado pendiente de contrasena");
+            mostrarInfo("maestro guardado correctamente. usuario creado con contrasena 000");
             limpiarFormulario();
             cargarMaestros();
 
@@ -185,8 +214,29 @@ public class MaestrosJDMController extends BaseController {
         }
     }
 
-    private void actualizarMaestro(String nombre, String apellidoPaterno, String apellidoMaterno, String numeroEmpleado, String correo, String telefono) {
+    private int obtenerIdRol(Connection con, String nombreRol) throws Exception {
         String sql = """
+                select id_rol
+                from rol
+                where nombre=?
+                limit 1
+                """;
+
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, nombreRol);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_rol");
+                }
+            }
+        }
+
+        throw new Exception("no existe el rol " + nombreRol);
+    }
+
+    private void actualizarMaestro(String nombre, String apellidoPaterno, String apellidoMaterno, String numeroEmpleado, String correo, String telefono) {
+        String sqlMaestro = """
                 update maestro
                 set num_empleado=?,
                 nombre=?,
@@ -197,18 +247,35 @@ public class MaestrosJDMController extends BaseController {
                 where id_maestro=?
                 """;
 
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        String sqlUsuario = """
+                update usuario
+                set usuario=?
+                where id_usuario=?
+                """;
 
-            ps.setString(1, numeroEmpleado);
-            ps.setString(2, nombre);
-            ps.setString(3, apellidoPaterno);
-            ps.setString(4, apellidoMaterno);
-            ps.setString(5, correo);
-            ps.setString(6, telefono);
-            ps.setInt(7, maestroSeleccionado.getIdMaestro());
+        try (Connection con = ConexionBD.conectar()) {
+            con.setAutoCommit(false);
 
-            ps.executeUpdate();
+            try (PreparedStatement ps = con.prepareStatement(sqlMaestro)) {
+                ps.setString(1, numeroEmpleado);
+                ps.setString(2, nombre);
+                ps.setString(3, apellidoPaterno);
+                ps.setString(4, apellidoMaterno);
+                ps.setString(5, correo);
+                ps.setString(6, telefono);
+                ps.setInt(7, maestroSeleccionado.getIdMaestro());
+                ps.executeUpdate();
+            }
+
+            if (maestroSeleccionado.getIdUsuario() > 0) {
+                try (PreparedStatement ps = con.prepareStatement(sqlUsuario)) {
+                    ps.setString(1, numeroEmpleado);
+                    ps.setInt(2, maestroSeleccionado.getIdUsuario());
+                    ps.executeUpdate();
+                }
+            }
+
+            con.commit();
 
             mostrarInfo("maestro actualizado correctamente");
             limpiarFormulario();
@@ -246,15 +313,36 @@ public class MaestrosJDMController extends BaseController {
 
         int nuevoEstatus = maestroSeleccionado.getEstatus().equalsIgnoreCase("activo") ? 0 : 1;
 
-        String sql = "update maestro set id_estatus_general=? where id_maestro=?";
+        String sqlMaestro = """
+                update maestro
+                set id_estatus_general=?
+                where id_maestro=?
+                """;
 
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        String sqlUsuario = """
+                update usuario
+                set id_estatus_general=?
+                where id_usuario=?
+                """;
 
-            ps.setInt(1, nuevoEstatus);
-            ps.setInt(2, maestroSeleccionado.getIdMaestro());
+        try (Connection con = ConexionBD.conectar()) {
+            con.setAutoCommit(false);
 
-            ps.executeUpdate();
+            try (PreparedStatement ps = con.prepareStatement(sqlMaestro)) {
+                ps.setInt(1, nuevoEstatus);
+                ps.setInt(2, maestroSeleccionado.getIdMaestro());
+                ps.executeUpdate();
+            }
+
+            if (maestroSeleccionado.getIdUsuario() > 0) {
+                try (PreparedStatement ps = con.prepareStatement(sqlUsuario)) {
+                    ps.setInt(1, nuevoEstatus);
+                    ps.setInt(2, maestroSeleccionado.getIdUsuario());
+                    ps.executeUpdate();
+                }
+            }
+
+            con.commit();
 
             mostrarInfo("estatus actualizado correctamente");
             limpiarFormulario();
@@ -325,6 +413,7 @@ public class MaestrosJDMController extends BaseController {
 
     public static class MaestroJDM {
         private final int idMaestro;
+        private final int idUsuario;
         private final String nombre;
         private final String apellidoPaterno;
         private final String apellidoMaterno;
@@ -333,8 +422,9 @@ public class MaestrosJDMController extends BaseController {
         private final String telefono;
         private final String estatus;
 
-        public MaestroJDM(int idMaestro, String nombre, String apellidoPaterno, String apellidoMaterno, String numeroEmpleado, String correo, String telefono, String estatus) {
+        public MaestroJDM(int idMaestro, int idUsuario, String nombre, String apellidoPaterno, String apellidoMaterno, String numeroEmpleado, String correo, String telefono, String estatus) {
             this.idMaestro = idMaestro;
+            this.idUsuario = idUsuario;
             this.nombre = nombre;
             this.apellidoPaterno = apellidoPaterno;
             this.apellidoMaterno = apellidoMaterno;
@@ -346,6 +436,10 @@ public class MaestrosJDMController extends BaseController {
 
         public int getIdMaestro() {
             return idMaestro;
+        }
+
+        public int getIdUsuario() {
+            return idUsuario;
         }
 
         public String getNombre() {

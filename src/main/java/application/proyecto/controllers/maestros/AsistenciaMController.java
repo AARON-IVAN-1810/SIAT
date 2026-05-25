@@ -12,7 +12,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.LocalDate;
 
 public class AsistenciaMController extends BaseController {
@@ -85,6 +88,7 @@ public class AsistenciaMController extends BaseController {
             cbMateria.getItems().clear();
             cbMateria.setValue(null);
             listaAlumnos.clear();
+            lblTotalAlumnos.setText("0");
 
             if (grupo != null) {
                 txtTurno.setText(grupo.getTurno());
@@ -96,8 +100,17 @@ public class AsistenciaMController extends BaseController {
             actualizarResumen();
         });
 
-        cbMateria.setOnAction(event -> actualizarResumen());
-        dpFecha.setOnAction(event -> actualizarResumen());
+        cbMateria.setOnAction(event -> {
+            listaAlumnos.clear();
+            lblTotalAlumnos.setText("0");
+            actualizarResumen();
+        });
+
+        dpFecha.setOnAction(event -> {
+            listaAlumnos.clear();
+            lblTotalAlumnos.setText("0");
+            actualizarResumen();
+        });
 
         txtBuscar.textProperty().addListener((obs, oldValue, newValue) -> filtrarTabla());
     }
@@ -117,15 +130,18 @@ public class AsistenciaMController extends BaseController {
                 gc.id_grupo_ciclo,
                 g.nombre as grupo,
                 g.semestre,
-                ct.nombre as turno
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_estatus_general=1
                 and gc.id_estatus_general=1
-                order by g.semestre,g.nombre
+                and g.id_estatus_general=1
+                order by ce.nombre desc,g.semestre,g.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -139,7 +155,8 @@ public class AsistenciaMController extends BaseController {
                             rs.getInt("id_grupo_ciclo"),
                             rs.getString("grupo"),
                             rs.getInt("semestre"),
-                            rs.getString("turno")
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -158,9 +175,17 @@ public class AsistenciaMController extends BaseController {
         String sql = """
                 select
                 c.id_carga,
-                m.nombre as materia
+                m.nombre as materia,
+                m.clave as clave,
+                g.nombre as grupo,
+                ct.nombre as turno,
+                ce.nombre as ciclo
                 from carga c
                 inner join materia m on c.id_materia=m.id_materia
+                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                 where c.id_maestro=?
                 and c.id_grupo_ciclo=?
                 and c.id_estatus_general=1
@@ -177,7 +202,11 @@ public class AsistenciaMController extends BaseController {
                 while (rs.next()) {
                     cbMateria.getItems().add(new MateriaItem(
                             rs.getInt("id_carga"),
-                            rs.getString("materia")
+                            rs.getString("materia"),
+                            rs.getString("clave"),
+                            rs.getString("grupo"),
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
                     ));
                 }
             }
@@ -189,10 +218,9 @@ public class AsistenciaMController extends BaseController {
     }
 
     private void cargarAlumnos() {
-        GrupoItem grupo = cbGrupo.getValue();
         MateriaItem materia = cbMateria.getValue();
 
-        if (grupo == null || materia == null || dpFecha.getValue() == null) {
+        if (materia == null || dpFecha.getValue() == null) {
             mostrarError("selecciona grupo, materia y fecha");
             return;
         }
@@ -204,18 +232,20 @@ public class AsistenciaMController extends BaseController {
                 a.id_alumno,
                 a.num_control,
                 concat(a.nombre,' ',a.apellido_paterno,' ',a.apellido_materno) as nombre_alumno,
-                g.nombre as grupo,
-                ct.nombre as turno,
+                concat(ga.nombre,' - ',cta.nombre) as grupo_admin,
+                cta.nombre as turno_admin,
                 ifnull(cea.nombre,'asistio') as estado
-                from alumno a
-                inner join grupo_ciclo gc on a.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
+                from alumno_carga ac
+                inner join alumno a on ac.id_alumno=a.id_alumno
+                inner join grupo_ciclo gca on a.id_grupo_ciclo=gca.id_grupo_ciclo
+                inner join grupo ga on gca.id_grupo=ga.id_grupo
+                inner join cat_turno cta on ga.id_turno=cta.id_turno
                 left join asistencia_sesion s on s.id_carga=? and s.fecha=?
                 left join asistencia_detalle ad on ad.id_asistencia_sesion=s.id_asistencia_sesion
                 and ad.id_alumno=a.id_alumno
                 left join cat_estado_asistencia cea on ad.id_estado_asistencia=cea.id_estado_asistencia
-                where a.id_grupo_ciclo=?
+                where ac.id_carga=?
+                and ac.id_estatus_general=1
                 and a.id_estatus_general=1
                 order by a.apellido_paterno,a.apellido_materno,a.nombre
                 """;
@@ -225,7 +255,7 @@ public class AsistenciaMController extends BaseController {
 
             ps.setInt(1, materia.getIdCarga());
             ps.setDate(2, Date.valueOf(dpFecha.getValue()));
-            ps.setInt(3, grupo.getIdGrupoCiclo());
+            ps.setInt(3, materia.getIdCarga());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -233,8 +263,8 @@ public class AsistenciaMController extends BaseController {
                             rs.getInt("id_alumno"),
                             rs.getString("num_control"),
                             rs.getString("nombre_alumno"),
-                            rs.getString("grupo"),
-                            rs.getString("turno"),
+                            rs.getString("grupo_admin"),
+                            rs.getString("turno_admin"),
                             rs.getString("estado")
                     ));
                 }
@@ -243,6 +273,10 @@ public class AsistenciaMController extends BaseController {
             lblTotalAlumnos.setText(String.valueOf(listaAlumnos.size()));
             actualizarResumen();
             filtrarTabla();
+
+            if (listaAlumnos.isEmpty()) {
+                mostrarError("no hay alumnos inscritos en esta clase");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -269,6 +303,7 @@ public class AsistenciaMController extends BaseController {
                 from asistencia_sesion
                 where id_carga=?
                 and fecha=?
+                limit 1
                 """;
 
         String sqlDetalle = """
@@ -304,6 +339,10 @@ public class AsistenciaMController extends BaseController {
                 }
             }
 
+            if (idSesion == 0) {
+                throw new Exception("no se pudo obtener la sesion de asistencia");
+            }
+
             try (PreparedStatement psDetalle = con.prepareStatement(sqlDetalle)) {
                 for (AlumnoAsistencia alumno : listaAlumnos) {
                     psDetalle.setInt(1, idSesion);
@@ -317,6 +356,7 @@ public class AsistenciaMController extends BaseController {
 
             con.commit();
             mostrarInfo("asistencia guardada correctamente");
+            cargarAlumnos();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -353,7 +393,6 @@ public class AsistenciaMController extends BaseController {
                         alumno.getGrupo().toLowerCase().contains(texto) ||
                         alumno.getTurno().toLowerCase().contains(texto) ||
                         alumno.getEstado().toLowerCase().contains(texto)
-
         );
     }
 
@@ -361,10 +400,10 @@ public class AsistenciaMController extends BaseController {
         GrupoItem grupo = cbGrupo.getValue();
         MateriaItem materia = cbMateria.getValue();
 
-        lblFechaSeleccionada.setText(dpFecha.getValue() == null ? "Sin fecha seleccionada" : dpFecha.getValue().toString());
-        lblGrupoSeleccionado.setText(grupo == null ? "Sin grupo" : grupo.getNombre());
-        lblTurnoSeleccionado.setText(grupo == null ? "Sin turno" : grupo.getTurno());
-        lblMateriaSeleccionada.setText(materia == null ? "Sin materia" : materia.getNombre());
+        lblFechaSeleccionada.setText(dpFecha.getValue() == null ? "sin fecha seleccionada" : dpFecha.getValue().toString());
+        lblGrupoSeleccionado.setText(grupo == null ? "sin grupo" : grupo.getNombre());
+        lblTurnoSeleccionado.setText(grupo == null ? "sin turno" : grupo.getTurno());
+        lblMateriaSeleccionada.setText(materia == null ? "sin materia" : materia.getNombre());
     }
 
     private void mostrarError(String mensaje) {
@@ -388,12 +427,14 @@ public class AsistenciaMController extends BaseController {
         private final String nombre;
         private final int semestre;
         private final String turno;
+        private final String ciclo;
 
-        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno) {
+        public GrupoItem(int idGrupoCiclo, String nombre, int semestre, String turno, String ciclo) {
             this.idGrupoCiclo = idGrupoCiclo;
             this.nombre = nombre;
             this.semestre = semestre;
             this.turno = turno;
+            this.ciclo = ciclo;
         }
 
         public int getIdGrupoCiclo() {
@@ -408,19 +449,31 @@ public class AsistenciaMController extends BaseController {
             return turno;
         }
 
+        public String getCiclo() {
+            return ciclo;
+        }
+
         @Override
         public String toString() {
-            return nombre + " - " + semestre + " semestre";
+            return nombre + " - " + turno + " - " + ciclo;
         }
     }
 
     public static class MateriaItem {
         private final int idCarga;
         private final String nombre;
+        private final String clave;
+        private final String grupo;
+        private final String turno;
+        private final String ciclo;
 
-        public MateriaItem(int idCarga, String nombre) {
+        public MateriaItem(int idCarga, String nombre, String clave, String grupo, String turno, String ciclo) {
             this.idCarga = idCarga;
             this.nombre = nombre;
+            this.clave = clave;
+            this.grupo = grupo;
+            this.turno = turno;
+            this.ciclo = ciclo;
         }
 
         public int getIdCarga() {
@@ -431,9 +484,25 @@ public class AsistenciaMController extends BaseController {
             return nombre;
         }
 
+        public String getClave() {
+            return clave;
+        }
+
+        public String getGrupo() {
+            return grupo;
+        }
+
+        public String getTurno() {
+            return turno;
+        }
+
+        public String getCiclo() {
+            return ciclo;
+        }
+
         @Override
         public String toString() {
-            return nombre;
+            return clave + " - " + nombre;
         }
     }
 
@@ -451,7 +520,7 @@ public class AsistenciaMController extends BaseController {
             this.nombreAlumno = nombreAlumno;
             this.grupo = grupo;
             this.turno = turno;
-            this.estado = new SimpleStringProperty(estado);
+            this.estado = new SimpleStringProperty(estado == null ? "asistio" : estado);
         }
 
         public int getIdAlumno() {

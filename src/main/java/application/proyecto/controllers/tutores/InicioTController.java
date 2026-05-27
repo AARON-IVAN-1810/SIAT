@@ -3,16 +3,20 @@ package application.proyecto.controllers.tutores;
 import application.proyecto.controllers.BaseController;
 import application.proyecto.utils.ConexionBD;
 import application.proyecto.utils.SesionUsuario;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class InicioTController extends BaseController {
 
@@ -41,9 +45,8 @@ public class InicioTController extends BaseController {
         configurarTabla();
         configurarFiltros();
         configurarEventos();
-        cargarMetricas();
-        cargarGruposFiltro();
-        cargarAlertas();
+        mostrarCargando();
+        cargarDatosInicialesAsync();
     }
 
     private int getIdTutorActual() {
@@ -58,8 +61,57 @@ public class InicioTController extends BaseController {
         colEstatus.setCellValueFactory(new PropertyValueFactory<>("estatus"));
         colFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
 
+        configurarColumnaPrioridad();
+
         listaFiltrada = new FilteredList<>(listaAlertas, p -> true);
         tablaAlertasTutor.setItems(listaFiltrada);
+    }
+
+    private void configurarColumnaPrioridad() {
+        colPrioridad.setCellFactory(tc -> new TableCell<AlertaTutor, String>() {
+            @Override
+            protected void updateItem(String prioridad, boolean empty) {
+                super.updateItem(prioridad, empty);
+
+                if (empty || prioridad == null || prioridad.trim().isEmpty()) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                String valor = prioridad.toLowerCase().trim();
+                setText(prioridad);
+
+                if (valor.contains("alta")) {
+                    setStyle("""
+                            -fx-background-color: #fee2e2;
+                            -fx-text-fill: #991b1b;
+                            -fx-font-weight: bold;
+                            -fx-alignment: center;
+                            """);
+                } else if (valor.contains("media")) {
+                    setStyle("""
+                            -fx-background-color: #fef3c7;
+                            -fx-text-fill: #92400e;
+                            -fx-font-weight: bold;
+                            -fx-alignment: center;
+                            """);
+                } else if (valor.contains("baja")) {
+                    setStyle("""
+                            -fx-background-color: #dcfce7;
+                            -fx-text-fill: #166534;
+                            -fx-font-weight: bold;
+                            -fx-alignment: center;
+                            """);
+                } else {
+                    setStyle("""
+                            -fx-background-color: transparent;
+                            -fx-text-fill: #111827;
+                            -fx-alignment: center;
+                            """);
+                }
+            }
+        });
     }
 
     private void configurarFiltros() {
@@ -73,7 +125,6 @@ public class InicioTController extends BaseController {
                 "calificacion",
                 "conducta"
         ));
-
         cmbTipoFiltro.setValue("todos");
     }
 
@@ -83,73 +134,14 @@ public class InicioTController extends BaseController {
         cmbTipoFiltro.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
     }
 
-    private void cargarMetricas() {
-        int idTutor = getIdTutorActual();
-
-        if (idTutor == 0) {
-            mostrarError("no hay tutor en sesion");
-            return;
-        }
-
-        String sqlAlertas = """
-                select
-                count(distinct case when a.id_estatus_alerta in (1,2) then a.id_alerta end) as alertas_activas,
-                count(distinct case when a.id_estatus_alerta=2 then a.id_alerta end) as casos_seguimiento,
-                count(distinct case when a.id_estatus_alerta=0 then a.id_alerta end) as casos_cerrados
-                from tutoria_asignacion ta
-                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
-                inner join alerta a on c.id_carga=a.id_carga
-                inner join alumno al on a.id_alumno=al.id_alumno
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                where ta.id_maestro_tutor=?
-                and ta.id_estatus_tutoria=1
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                and al.id_estatus_general=1
-                """;
-
-        String sqlIntervenciones = """
-                select count(*) as intervenciones
-                from intervencion_tutor it
-                where it.id_maestro_tutor=?
-                and it.fecha_intervencion>=date_sub(curdate(), interval 30 day)
-                """;
-
-        try (Connection con = ConexionBD.conectar()) {
-            try (PreparedStatement ps = con.prepareStatement(sqlAlertas)) {
-                ps.setInt(1, idTutor);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        lblAlertasActivas.setText(String.valueOf(rs.getInt("alertas_activas")));
-                        lblCasosSeguimiento.setText(String.valueOf(rs.getInt("casos_seguimiento")));
-                        lblCasosCerrados.setText(String.valueOf(rs.getInt("casos_cerrados")));
-                    }
-                }
-            }
-
-            try (PreparedStatement ps = con.prepareStatement(sqlIntervenciones)) {
-                ps.setInt(1, idTutor);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        lblIntervencionesRecientes.setText(String.valueOf(rs.getInt("intervenciones")));
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al cargar metricas del tutor");
-        }
+    private void mostrarCargando() {
+        lblAlertasActivas.setText("...");
+        lblCasosSeguimiento.setText("...");
+        lblCasosCerrados.setText("...");
+        lblIntervencionesRecientes.setText("...");
     }
 
-    private void cargarGruposFiltro() {
-        cmbGrupoFiltro.getItems().clear();
-        cmbGrupoFiltro.getItems().add("todos");
-
+    private void cargarDatosInicialesAsync() {
         int idTutor = getIdTutorActual();
 
         if (idTutor == 0) {
@@ -157,90 +149,95 @@ public class InicioTController extends BaseController {
             return;
         }
 
-        String sql = """
-                select distinct
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
-                from tutoria_asignacion ta
-                inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
-                inner join carga c on gc.id_grupo_ciclo=c.id_grupo_ciclo
-                where ta.id_maestro_tutor=?
-                and ta.id_estatus_tutoria=1
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                order by grupo
-                """;
+        Task<DatosInicioTutor> task = new Task<>() {
+            @Override
+            protected DatosInicioTutor call() throws Exception {
+                DatosInicioTutor datos = new DatosInicioTutor();
 
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, idTutor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    cmbGrupoFiltro.getItems().add(rs.getString("grupo"));
+                try (Connection con = ConexionBD.conectar()) {
+                    cargarMetricasDesdeSP(con, idTutor, datos);
+                    cargarGruposDesdeSP(con, idTutor, datos);
+                    cargarAlertasDesdeSP(con, idTutor, datos);
                 }
-            }
 
+                return datos;
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            DatosInicioTutor datos = task.getValue();
+
+            lblAlertasActivas.setText(String.valueOf(datos.alertasActivas));
+            lblCasosSeguimiento.setText(String.valueOf(datos.casosSeguimiento));
+            lblCasosCerrados.setText(String.valueOf(datos.casosCerrados));
+            lblIntervencionesRecientes.setText(String.valueOf(datos.intervencionesRecientes));
+
+            cmbGrupoFiltro.getItems().setAll(datos.grupos);
             cmbGrupoFiltro.setValue("todos");
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al cargar grupos");
+            listaAlertas.setAll(datos.alertas);
+            aplicarFiltro();
+        });
+
+        task.setOnFailed(event -> {
+            task.getException().printStackTrace();
+            mostrarError("error al cargar datos del inicio");
+            lblAlertasActivas.setText("0");
+            lblCasosSeguimiento.setText("0");
+            lblCasosCerrados.setText("0");
+            lblIntervencionesRecientes.setText("0");
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void cargarMetricasDesdeSP(Connection con, int idTutor, DatosInicioTutor datos) throws Exception {
+        String sql = "{call sp_tutor_metricas_inicio(?)}";
+
+        try (CallableStatement cs = con.prepareCall(sql)) {
+            cs.setInt(1, idTutor);
+
+            try (ResultSet rs = cs.executeQuery()) {
+                if (rs.next()) {
+                    datos.alertasActivas = rs.getInt("alertas_activas");
+                    datos.casosSeguimiento = rs.getInt("casos_seguimiento");
+                    datos.casosCerrados = rs.getInt("casos_cerrados");
+                    datos.intervencionesRecientes = rs.getInt("intervenciones_recientes");
+                }
+            }
         }
     }
 
-    private void cargarAlertas() {
-        listaAlertas.clear();
+    private void cargarGruposDesdeSP(Connection con, int idTutor, DatosInicioTutor datos) throws Exception {
+        datos.grupos.clear();
+        datos.grupos.add("todos");
 
-        int idTutor = getIdTutorActual();
+        String sql = "{call sp_tutor_grupos(?)}";
 
-        if (idTutor == 0) {
-            mostrarError("no hay tutor en sesion");
-            return;
-        }
+        try (CallableStatement cs = con.prepareCall(sql)) {
+            cs.setInt(1, idTutor);
 
-        String sql = """
-                select distinct
-                concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre,' | ',m.clave,' - ',m.nombre) as grupo,
-                cta.nombre as tipo_alerta,
-                cpa.nombre as prioridad,
-                cea.nombre as estatus,
-                a.creada_en as fecha_orden,
-                date_format(a.creada_en,'%Y-%m-%d') as fecha
-                from tutoria_asignacion ta
-                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
-                inner join materia m on c.id_materia=m.id_materia
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
-                inner join alerta a on c.id_carga=a.id_carga
-                inner join alumno al on a.id_alumno=al.id_alumno
-                inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
-                inner join cat_prioridad_alerta cpa on a.id_prioridad_alerta=cpa.id_prioridad_alerta
-                inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
-                where ta.id_maestro_tutor=?
-                and ta.id_estatus_tutoria=1
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                and al.id_estatus_general=1
-                order by fecha_orden desc
-                """;
-
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, idTutor);
-
-            try (ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = cs.executeQuery()) {
                 while (rs.next()) {
-                    listaAlertas.add(new AlertaTutor(
+                    datos.grupos.add(rs.getString("grupo"));
+                }
+            }
+        }
+    }
+
+    private void cargarAlertasDesdeSP(Connection con, int idTutor, DatosInicioTutor datos) throws Exception {
+        datos.alertas.clear();
+
+        String sql = "{call sp_tutor_alertas_inicio(?)}";
+
+        try (CallableStatement cs = con.prepareCall(sql)) {
+            cs.setInt(1, idTutor);
+
+            try (ResultSet rs = cs.executeQuery()) {
+                while (rs.next()) {
+                    datos.alertas.add(new AlertaTutor(
                             rs.getString("alumno"),
                             rs.getString("grupo"),
                             rs.getString("tipo_alerta"),
@@ -250,12 +247,6 @@ public class InicioTController extends BaseController {
                     ));
                 }
             }
-
-            aplicarFiltro();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al cargar alertas del tutor");
         }
     }
 
@@ -295,12 +286,29 @@ public class InicioTController extends BaseController {
         });
     }
 
+    @FXML
+    private void handleActualizar() {
+        mostrarCargando();
+        cargarDatosInicialesAsync();
+    }
+
     private void mostrarError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("error");
+            alert.setHeaderText(null);
+            alert.setContentText(mensaje);
+            alert.showAndWait();
+        });
+    }
+
+    private static class DatosInicioTutor {
+        private int alertasActivas = 0;
+        private int casosSeguimiento = 0;
+        private int casosCerrados = 0;
+        private int intervencionesRecientes = 0;
+        private final List<String> grupos = new ArrayList<>();
+        private final List<AlertaTutor> alertas = new ArrayList<>();
     }
 
     public static class AlertaTutor {

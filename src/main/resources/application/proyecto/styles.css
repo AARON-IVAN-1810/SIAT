@@ -26,7 +26,8 @@
    BOTONES GENERALES
 ========================= */
 
-.button {
+.button,
+.toggle-button {
     -fx-cursor: hand;
     -fx-background-radius: 10;
     -fx-border-radius: 10;
@@ -34,7 +35,7 @@
     -fx-font-weight: bold;
 }
 
-/* BOTON PRINCIPAL (azul fuerte) */
+/* BOTON PRINCIPAL */
 .btn-primary {
     -fx-background-color: #0b57d0;
     -fx-text-fill: white;
@@ -44,7 +45,7 @@
     -fx-background-color: #0842a0;
 }
 
-/* BOTON SECUNDARIO (azul claro) */
+/* BOTON SECUNDARIO */
 .btn-secondary {
     -fx-background-color: #6ea8e5;
     -fx-text-fill: white;
@@ -54,7 +55,7 @@
     -fx-background-color: #5a94d1;
 }
 
-/* BOTON MORADO (acciones como activar/desactivar) */
+/* BOTON MORADO */
 .btn-accent {
     -fx-background-color: #7762d9;
     -fx-text-fill: white;
@@ -64,7 +65,7 @@
     -fx-background-color: #5f4ec4;
 }
 
-/* BOTON VERDE (guardar asistencia) */
+/* BOTON VERDE */
 .btn-success {
     -fx-background-color: #16a34a;
     -fx-text-fill: white;
@@ -74,7 +75,7 @@
     -fx-background-color: #15803d;
 }
 
-/* BOTON GRIS (cancelar, limpiar, etc) */
+/* BOTON GRIS */
 .btn-light {
     -fx-background-color: #e5e7eb;
     -fx-text-fill: #374151;
@@ -84,7 +85,7 @@
     -fx-background-color: #d1d5db;
 }
 
-/* BOTON TRANSPARENTE (barra superior) */
+/* BOTON TRANSPARENTE */
 .btn-flat {
     -fx-background-color: transparent;
     -fx-text-fill: #111827;
@@ -95,7 +96,71 @@
 }
 
 /* =========================
-   INPUTS (TextField, TextArea)
+   BOTONES DEL MENU LATERAL
+========================= */
+
+.toggle-button.menu-button,
+.button.menu-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-color: transparent;
+    -fx-border-radius: 6;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-padding: 0 0 0 0;
+}
+
+.toggle-button.menu-button:hover,
+.button.menu-button:hover {
+    -fx-background-color: #34476f;
+    -fx-background-insets: 0;
+    -fx-text-fill: white;
+}
+
+.toggle-button.menu-button:focused,
+.button.menu-button:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+}
+
+.toggle-button.menu-button:selected,
+.button.menu-button-active,
+.toggle-button.menu-button-active {
+    -fx-background-color: #4568ad;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-color: transparent;
+    -fx-border-radius: 6;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-padding: 0 0 0 0;
+}
+
+.toggle-button.menu-button:selected:hover,
+.button.menu-button-active:hover,
+.toggle-button.menu-button-active:hover {
+    -fx-background-color: #4568ad;
+    -fx-background-insets: 0;
+    -fx-text-fill: white;
+}
+
+.toggle-button.menu-button:selected:focused,
+.button.menu-button-active:focused,
+.toggle-button.menu-button-active:focused {
+    -fx-background-color: #4568ad;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+}
+/* =========================
+   INPUTS
 ========================= */
 
 .text-field,
@@ -162,7 +227,6 @@
     -fx-border-radius: 10;
 }
 
-/* encabezado */
 .table-view .column-header-background {
     -fx-background-color: #f3f4f6;
 }
@@ -178,7 +242,6 @@
     -fx-font-size: 12px;
 }
 
-/* filas */
 .table-row-cell {
     -fx-border-color: transparent;
 }
@@ -192,7 +255,7 @@
 }
 
 /* =========================
-   CARDS / CONTENEDORES
+   CARDS
 ========================= */
 
 .card {
@@ -204,7 +267,7 @@
 }
 
 /* =========================
-   BARRA DE BUSQUEDA
+   BUSQUEDA
 ========================= */
 
 .search-box {

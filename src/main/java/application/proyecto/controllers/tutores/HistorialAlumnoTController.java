@@ -151,20 +151,16 @@ public class HistorialAlumnoTController extends BaseController {
         }
 
         String sql = """
-                select distinct
+                select
                 al.id_alumno,
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno
                 from alumno al
-                left join alumno_carga ac on al.id_alumno=ac.id_alumno
-                and ac.id_estatus_general=1
-                left join carga c on ac.id_carga=c.id_carga
-                and c.id_estatus_general=1
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 where al.id_estatus_general=1
-                and (
-                    al.id_grupo_ciclo=?
-                    or c.id_grupo_ciclo=?
-                )
+                and al.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 order by alumno
                 """;
 
@@ -172,7 +168,7 @@ public class HistorialAlumnoTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, grupo.getIdGrupoCiclo());
-            ps.setInt(2, grupo.getIdGrupoCiclo());
+            ps.setInt(2, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -186,7 +182,7 @@ public class HistorialAlumnoTController extends BaseController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al cargar alumnos del grupo");
+            mostrarError("error al cargar alumnos del grupo tutorado");
         }
     }
 
@@ -205,37 +201,81 @@ public class HistorialAlumnoTController extends BaseController {
             return;
         }
 
+        if (!alumnoPerteneceAGrupoTutorado(alumno.getIdAlumno(), grupo.getIdGrupoCiclo())) {
+            mostrarError("el alumno no pertenece a tu grupo tutorado");
+            return;
+        }
+
         cargarMetricas(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
         cargarAlertas(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
         cargarReportes(alumno.getIdAlumno(), grupo.getIdGrupoCiclo());
         generarDiagnostico();
     }
 
+    private boolean alumnoPerteneceAGrupoTutorado(int idAlumno, int idGrupoCiclo) {
+        String sql = """
+                select count(*) as total
+                from alumno al
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
+                where al.id_alumno=?
+                and al.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
+                and al.id_estatus_general=1
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idAlumno);
+            ps.setInt(2, idGrupoCiclo);
+            ps.setInt(3, getIdTutorActual());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total") > 0;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     private void cargarMetricas(int idAlumno, int idGrupoCiclo) {
+        totalAlertas = 0;
+        alertasAsistencia = 0;
+        alertasActividad = 0;
+        reportesGenerados = 0;
+
         String sqlAlertas = """
                 select
                 count(distinct a.id_alerta) as total_alertas,
                 coalesce(sum(case when lower(cta.nombre)='asistencia' then 1 else 0 end),0) as alertas_asistencia,
                 coalesce(sum(case when lower(cta.nombre) in ('actividad','calificacion') then 1 else 0 end),0) as alertas_actividad
-                from alerta a
-                inner join carga c on a.id_carga=c.id_carga
-                inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
-                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
-                where a.id_alumno=?
-                and c.id_grupo_ciclo=?
+                from alumno al
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
+                left join alerta a on a.id_alumno=al.id_alumno
+                left join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
+                where al.id_alumno=?
+                and al.id_grupo_ciclo=?
                 and ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
+                and al.id_estatus_general=1
                 """;
 
         String sqlReportes = """
                 select count(distinct rd.id_reporte_docente) as total_reportes
-                from reporte_docente rd
-                inner join carga c on rd.id_carga=c.id_carga
-                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
-                where rd.id_alumno=?
-                and c.id_grupo_ciclo=?
+                from alumno al
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
+                left join reporte_docente rd on rd.id_alumno=al.id_alumno
+                where al.id_alumno=?
+                and al.id_grupo_ciclo=?
                 and ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
+                and al.id_estatus_general=1
                 """;
 
         try (Connection con = ConexionBD.conectar()) {
@@ -283,24 +323,29 @@ public class HistorialAlumnoTController extends BaseController {
         String sql = """
                 select
                 date_format(a.creada_en,'%Y-%m-%d') as fecha,
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre) as grupo,
                 concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 cea.nombre as estado
                 from alerta a
+                inner join alumno al on a.id_alumno=al.id_alumno
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 inner join carga c on a.id_carga=c.id_carga
                 inner join materia m on c.id_materia=m.id_materia
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+
+                inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
+                inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
+                inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
+                inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
+
                 inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_alerta cea on a.id_estatus_alerta=cea.id_estatus_alerta
-                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
+
                 where a.id_alumno=?
-                and c.id_grupo_ciclo=?
+                and al.id_grupo_ciclo=?
                 and ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
+                and al.id_estatus_general=1
                 order by a.creada_en desc
                 """;
 
@@ -335,25 +380,30 @@ public class HistorialAlumnoTController extends BaseController {
         String sql = """
                 select
                 date_format(rd.creado_en,'%Y-%m-%d') as fecha,
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
+                concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre) as grupo,
                 concat(m.clave,' - ',m.nombre) as materia,
                 cta.nombre as motivo,
                 rd.descripcion,
                 cer.nombre as estado
                 from reporte_docente rd
+                inner join alumno al on rd.id_alumno=al.id_alumno
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 inner join carga c on rd.id_carga=c.id_carga
                 inner join materia m on c.id_materia=m.id_materia
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+
+                inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
+                inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
+                inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
+                inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
+
                 inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
                 inner join cat_estatus_reporte_docente cer on rd.id_estatus_reporte_docente=cer.id_estatus_reporte_docente
-                inner join tutoria_asignacion ta on c.id_grupo_ciclo=ta.id_grupo_ciclo
+
                 where rd.id_alumno=?
-                and c.id_grupo_ciclo=?
+                and al.id_grupo_ciclo=?
                 and ta.id_maestro_tutor=?
                 and ta.id_estatus_tutoria=1
+                and al.id_estatus_general=1
                 order by rd.creado_en desc
                 """;
 
@@ -419,7 +469,7 @@ public class HistorialAlumnoTController extends BaseController {
                 "El alumno presenta un estado actual de " + calcularEstado() +
                         ". El problema dominante detectado es " + problemaDominante +
                         ". Tiene " + totalAlertas + " alertas registradas y " +
-                        reportesGenerados + " reportes generados en las clases de este grupo."
+                        reportesGenerados + " reportes generados en su historial academico."
         );
 
         lblCausasDetectadas.setText(causas);

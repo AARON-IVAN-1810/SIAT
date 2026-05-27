@@ -13,6 +13,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import javafx.event.ActionEvent;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.stage.Stage;
+
 public class InicioJDMController extends BaseController {
 
     @FXML private Label lblTotalAlumnos;
@@ -31,6 +37,24 @@ public class InicioJDMController extends BaseController {
 
     @FXML private ComboBox<String> cmbFiltroAlertas;
     @FXML private TextField txtBuscarAlertasRecientes;
+
+    @FXML private Button btnGruposSinTutor;
+
+    @FXML
+    private void handleAbrirGruposSinTutor(ActionEvent event) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/application/proyecto/views/jefedemaestros/GruposSinTutorJDM.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+            stage.setMaximized(true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al abrir grupos sin tutor");
+        }
+    }
 
     private final ObservableList<AlertaReciente> listaAlertas = FXCollections.observableArrayList();
 

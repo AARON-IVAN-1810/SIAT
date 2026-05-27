@@ -1,4 +1,4 @@
-package application.proyecto.controllers.tutores;
+package application.proyecto.controllers.jefedemaestros;
 
 import application.proyecto.controllers.BaseController;
 import application.proyecto.utils.ConexionBD;
@@ -7,15 +7,19 @@ import application.proyecto.utils.SesionUsuario;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.StackPane;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 
-public class OrientacionTController extends BaseController {
+public class OrientacionSinTutorJDMController extends BaseController {
 
     @FXML private ComboBox<GrupoItem> cmbGrupo;
     @FXML private ComboBox<AlumnoItem> cmbAlumno;
@@ -51,20 +55,22 @@ public class OrientacionTController extends BaseController {
 
     private int idAlumnoActual = 0;
     private int idGrupoCicloActual = 0;
+    private int idAlertaActual = 0;
+    private int idReporteActual = 0;
 
     @FXML
     public void initialize() {
         configurarTabla();
-        configurarEventos();
         cargarTiposIntervencion();
-        cargarGruposTutor();
+        cargarGruposSinTutor();
 
         txtFechaOrientacion.setText(LocalDate.now().toString());
 
         cargarDatosSesionOrientacion();
+        configurarEventos();
     }
 
-    private int getIdTutorActual() {
+    private int getIdResponsableActual() {
         return SesionUsuario.getIdMaestro();
     }
 
@@ -133,16 +139,9 @@ public class OrientacionTController extends BaseController {
         cmbTipoIntervencion.setValue(cmbTipoIntervencion.getItems().get(0));
     }
 
-    private void cargarGruposTutor() {
+    private void cargarGruposSinTutor() {
         cmbGrupo.getItems().clear();
         cmbAlumno.getItems().clear();
-
-        int idTutor = getIdTutorActual();
-
-        if (idTutor == 0) {
-            mostrarError("no hay tutor en sesion");
-            return;
-        }
 
         String sql = """
                 select distinct
@@ -150,39 +149,39 @@ public class OrientacionTController extends BaseController {
                 g.nombre as grupo,
                 g.semestre,
                 ct.nombre as turno,
-                ce.nombre as ciclo
-                from tutoria_asignacion ta
-                inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
+                ce.nombre as ciclo,
+                ce.nombre as ciclo_orden,
+                g.semestre as semestre_orden,
+                g.nombre as grupo_orden
+                from grupo_ciclo gc
                 inner join grupo g on gc.id_grupo=g.id_grupo
                 inner join cat_turno ct on g.id_turno=ct.id_turno
                 inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
-                where ta.id_maestro_tutor=?
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=gc.id_grupo_ciclo
                 and ta.id_estatus_tutoria=1
+                where ta.id_tutoria is null
                 and gc.id_estatus_general=1
                 and g.id_estatus_general=1
-                order by ciclo desc,semestre,grupo
+                order by ciclo_orden desc,semestre_orden,grupo_orden
                 """;
 
         try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-            ps.setInt(1, idTutor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    cmbGrupo.getItems().add(new GrupoItem(
-                            rs.getInt("id_grupo_ciclo"),
-                            rs.getString("grupo"),
-                            rs.getString("semestre"),
-                            rs.getString("turno"),
-                            rs.getString("ciclo")
-                    ));
-                }
+            while (rs.next()) {
+                cmbGrupo.getItems().add(new GrupoItem(
+                        rs.getInt("id_grupo_ciclo"),
+                        rs.getString("grupo"),
+                        rs.getString("semestre"),
+                        rs.getString("turno"),
+                        rs.getString("ciclo")
+                ));
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarError("error al cargar grupos tutorados");
+            mostrarError("error al cargar grupos sin tutor");
         }
     }
 
@@ -204,9 +203,9 @@ public class OrientacionTController extends BaseController {
                 al.num_control,
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno
                 from alumno al
-                where al.id_estatus_general=1
-                and al.id_grupo_ciclo=?
-                order by alumno
+                where al.id_grupo_ciclo=?
+                and al.id_estatus_general=1
+                order by al.apellido_paterno,al.apellido_materno,al.nombre
                 """;
 
         try (Connection con = ConexionBD.conectar();
@@ -236,29 +235,32 @@ public class OrientacionTController extends BaseController {
         }
 
         idAlumnoActual = SesionOrientacion.getIdAlumno();
+        idAlertaActual = SesionOrientacion.getIdAlerta();
+        idReporteActual = SesionOrientacion.getIdReporteDocente();
 
-        GrupoItem grupoSesion = buscarGrupoPorNombre(SesionOrientacion.getGrupo());
+        GrupoItem grupoAlumno = buscarGrupoSinTutorPorAlumno(idAlumnoActual);
 
-        if (grupoSesion != null) {
-            cmbGrupo.setValue(grupoSesion);
-            idGrupoCicloActual = grupoSesion.getIdGrupoCiclo();
-            cargarAlumnosPorGrupo();
+        if (grupoAlumno == null) {
+            mostrarError("el alumno seleccionado no pertenece a un grupo sin tutor");
+            return;
         }
 
-        seleccionarAlumnoPorId(SesionOrientacion.getIdAlumno());
+        cmbGrupo.setValue(grupoAlumno);
+        idGrupoCicloActual = grupoAlumno.getIdGrupoCiclo();
+
+        cargarAlumnosPorGrupo();
+        seleccionarAlumnoPorId(idAlumnoActual);
 
         if (cmbAlumno.getValue() == null) {
             cmbAlumno.setValue(new AlumnoItem(
-                    SesionOrientacion.getIdAlumno(),
+                    idAlumnoActual,
                     SesionOrientacion.getNumControl(),
                     SesionOrientacion.getNombreAlumno()
             ));
         }
 
-        idAlumnoActual = SesionOrientacion.getIdAlumno();
-
-        txtSemestre.setText(textoSeguro(SesionOrientacion.getSemestre()));
-        txtTurno.setText(textoSeguro(SesionOrientacion.getTurno()));
+        txtSemestre.setText(textoSeguro(grupoAlumno.getSemestre()));
+        txtTurno.setText(textoSeguro(grupoAlumno.getTurno()));
         txtMateria.setText(textoSeguro(SesionOrientacion.getMateria()));
         txtTipoAlerta.setText(textoSeguro(SesionOrientacion.getTipoAlerta()));
         txtPrioridad.setText(textoSeguro(SesionOrientacion.getPrioridad()));
@@ -268,19 +270,46 @@ public class OrientacionTController extends BaseController {
         cargarBitacoraAlumno();
     }
 
-    private GrupoItem buscarGrupoPorNombre(String nombreGrupo) {
-        if (nombreGrupo == null) {
-            return null;
-        }
+    private GrupoItem buscarGrupoSinTutorPorAlumno(int idAlumno) {
+        String sql = """
+                select
+                gc.id_grupo_ciclo,
+                g.nombre as grupo,
+                g.semestre,
+                ct.nombre as turno,
+                ce.nombre as ciclo
+                from alumno al
+                inner join grupo_ciclo gc on al.id_grupo_ciclo=gc.id_grupo_ciclo
+                inner join grupo g on gc.id_grupo=g.id_grupo
+                inner join cat_turno ct on g.id_turno=ct.id_turno
+                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=gc.id_grupo_ciclo
+                and ta.id_estatus_tutoria=1
+                where al.id_alumno=?
+                and ta.id_tutoria is null
+                limit 1
+                """;
 
-        String buscado = nombreGrupo.toLowerCase().trim();
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-        for (GrupoItem grupo : cmbGrupo.getItems()) {
-            String textoGrupo = grupo.toString().toLowerCase().trim();
+            ps.setInt(1, idAlumno);
 
-            if (textoGrupo.equals(buscado) || textoGrupo.contains(buscado) || buscado.contains(textoGrupo)) {
-                return grupo;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new GrupoItem(
+                            rs.getInt("id_grupo_ciclo"),
+                            rs.getString("grupo"),
+                            rs.getString("semestre"),
+                            rs.getString("turno"),
+                            rs.getString("ciclo")
+                    );
+                }
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al validar grupo sin tutor del alumno");
         }
 
         return null;
@@ -312,18 +341,101 @@ public class OrientacionTController extends BaseController {
         }
 
         if (SesionOrientacion.getIdAlumno() == 0) {
-            txtMateria.setText("");
-            txtTipoAlerta.setText("");
-            txtPrioridad.setText("");
-            txtFechaAlerta.setText("");
+            cargarUltimoContextoAlumno();
         }
 
         cargarIntervencionesAlumno();
         cargarBitacoraAlumno();
     }
 
+    private void cargarUltimoContextoAlumno() {
+        idAlertaActual = 0;
+        idReporteActual = 0;
+
+        txtMateria.clear();
+        txtTipoAlerta.clear();
+        txtPrioridad.clear();
+        txtFechaAlerta.clear();
+
+        String sql = """
+                select *
+                from(
+                    select
+                    a.id_alerta,
+                    0 as id_reporte_docente,
+                    concat(m.nombre,' (',m.clave,')') as materia,
+                    cta.nombre as tipo,
+                    cpa.nombre as prioridad,
+                    a.motivo as motivo,
+                    a.creada_en as fecha_orden,
+                    date_format(a.creada_en,'%Y-%m-%d') as fecha
+                    from alerta a
+                    inner join alumno al on a.id_alumno=al.id_alumno
+                    inner join carga c on a.id_carga=c.id_carga
+                    inner join materia m on c.id_materia=m.id_materia
+                    inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
+                    inner join cat_prioridad_alerta cpa on a.id_prioridad_alerta=cpa.id_prioridad_alerta
+                    left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
+                    and ta.id_estatus_tutoria=1
+                    where a.id_alumno=?
+                    and ta.id_tutoria is null
+                    and a.id_estatus_alerta in (1,2)
+
+                    union all
+
+                    select
+                    0 as id_alerta,
+                    rd.id_reporte_docente,
+                    concat(m.nombre,' (',m.clave,')') as materia,
+                    cta.nombre as tipo,
+                    'sin prioridad' as prioridad,
+                    rd.descripcion as motivo,
+                    rd.creado_en as fecha_orden,
+                    date_format(rd.creado_en,'%Y-%m-%d') as fecha
+                    from reporte_docente rd
+                    inner join alumno al on rd.id_alumno=al.id_alumno
+                    inner join carga c on rd.id_carga=c.id_carga
+                    inner join materia m on c.id_materia=m.id_materia
+                    inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
+                    left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
+                    and ta.id_estatus_tutoria=1
+                    where rd.id_alumno=?
+                    and ta.id_tutoria is null
+                    and rd.id_estatus_reporte_docente in (1,2)
+                ) datos
+                order by fecha_orden desc
+                limit 1
+                """;
+
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idAlumnoActual);
+            ps.setInt(2, idAlumnoActual);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    idAlertaActual = rs.getInt("id_alerta");
+                    idReporteActual = rs.getInt("id_reporte_docente");
+
+                    txtMateria.setText(textoSeguro(rs.getString("materia")));
+                    txtTipoAlerta.setText(textoSeguro(rs.getString("tipo")));
+                    txtPrioridad.setText(textoSeguro(rs.getString("prioridad")));
+                    txtFechaAlerta.setText(textoSeguro(rs.getString("fecha")));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarError("error al cargar contexto del alumno");
+        }
+    }
+
     private void limpiarDatosAlumnoManual() {
         idAlumnoActual = 0;
+        idAlertaActual = 0;
+        idReporteActual = 0;
+
         cmbAlumno.setValue(null);
 
         if (SesionOrientacion.getIdAlumno() == 0) {
@@ -340,13 +452,13 @@ public class OrientacionTController extends BaseController {
 
     @FXML
     private void handleRegistrarIntervencion() {
-        if (idAlumnoActual == 0) {
-            mostrarError("selecciona un alumno");
+        if (getIdResponsableActual() == 0) {
+            mostrarError("no hay usuario en sesion");
             return;
         }
 
-        if (!alumnoPerteneceATutor(idAlumnoActual)) {
-            mostrarError("no tienes permiso para registrar orientacion de este alumno");
+        if (idAlumnoActual == 0) {
+            mostrarError("selecciona un alumno");
             return;
         }
 
@@ -359,12 +471,18 @@ public class OrientacionTController extends BaseController {
 
         String acuerdos = txtAcuerdos.getText() == null ? "" : txtAcuerdos.getText().trim();
         String descripcion = txtDescripcionOrientacion.getText() == null ? "" : txtDescripcionOrientacion.getText().trim();
+
         String motivoSituacion = txtTipoAlerta.getText() == null || txtTipoAlerta.getText().trim().isEmpty()
                 ? "seguimiento del alumno"
                 : txtTipoAlerta.getText().trim();
 
         if (acuerdos.isEmpty() || descripcion.isEmpty()) {
             mostrarError("completa los campos de acuerdos y descripcion");
+            return;
+        }
+
+        if (!alumnoPerteneceAGrupoSinTutor(idAlumnoActual)) {
+            mostrarError("este alumno ya no pertenece a un grupo sin tutor");
             return;
         }
 
@@ -397,19 +515,19 @@ public class OrientacionTController extends BaseController {
             con.setAutoCommit(false);
 
             try (PreparedStatement ps = con.prepareStatement(sql)) {
-                if (SesionOrientacion.getIdAlerta() > 0) {
-                    ps.setInt(1, SesionOrientacion.getIdAlerta());
+                if (idAlertaActual > 0) {
+                    ps.setInt(1, idAlertaActual);
                 } else {
                     ps.setNull(1, java.sql.Types.INTEGER);
                 }
 
-                if (SesionOrientacion.getIdReporteDocente() > 0) {
-                    ps.setInt(2, SesionOrientacion.getIdReporteDocente());
+                if (idReporteActual > 0) {
+                    ps.setInt(2, idReporteActual);
                 } else {
                     ps.setNull(2, java.sql.Types.INTEGER);
                 }
 
-                ps.setInt(3, getIdTutorActual());
+                ps.setInt(3, getIdResponsableActual());
                 ps.setInt(4, idAlumnoActual);
                 ps.setInt(5, tipo.getIdTipoIntervencion());
                 ps.setDate(6, java.sql.Date.valueOf(obtenerFechaOrientacion()));
@@ -421,8 +539,8 @@ public class OrientacionTController extends BaseController {
                 ps.executeUpdate();
             }
 
-            cerrarAlertaSiExiste(con);
-            cerrarReporteSiExiste(con);
+            marcarAlertaEnSeguimientoSiExiste(con);
+            marcarReporteEnSeguimientoSiExiste(con);
 
             con.commit();
 
@@ -440,34 +558,30 @@ public class OrientacionTController extends BaseController {
         }
     }
 
-    private boolean alumnoPerteneceATutor(int idAlumno) {
+    private boolean alumnoPerteneceAGrupoSinTutor(int idAlumno) {
         String sql = """
-                select count(*) as total
+                select al.id_alumno
                 from alumno al
-                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
-                where al.id_alumno=?
-                and ta.id_maestro_tutor=?
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                 and ta.id_estatus_tutoria=1
-                and al.id_estatus_general=1
+                where al.id_alumno=?
+                and ta.id_tutoria is null
+                limit 1
                 """;
 
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idAlumno);
-            ps.setInt(2, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total") > 0;
-                }
+                return rs.next();
             }
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
-
-        return false;
     }
 
     private LocalDate obtenerFechaOrientacion() {
@@ -483,7 +597,28 @@ public class OrientacionTController extends BaseController {
 
     @FXML
     private void handleVerAlertas() {
-        mostrarInfo("regresa al modulo de gestion de alertas");
+        cargarVistaEnContent("/application/proyecto/views/jefedemaestros/GestionDeAlertasSinTutorJDM.fxml");
+    }
+
+    private void cargarVistaEnContent(String ruta) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(ruta));
+            Parent vista = loader.load();
+
+            StackPane contentArea = (StackPane) btnVerAlertas.getScene().lookup("#contentArea");
+
+            if (contentArea == null) {
+                mostrarError("no se encontro el contenedor principal");
+                return;
+            }
+
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(vista);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarError("no se pudo abrir la vista");
+        }
     }
 
     private void cargarIntervencionesAlumno() {
@@ -496,38 +631,22 @@ public class OrientacionTController extends BaseController {
         String sql = """
                 select
                 concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
-                coalesce(
-                    concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre,' | ',m.nombre),
-                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
-                    'sin grupo'
-                ) as grupo,
+                concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre) as grupo,
                 date(it.fecha_intervencion) as fecha,
                 cti.nombre as tipo_intervencion,
                 it.acuerdos,
                 it.observaciones
                 from intervencion_tutor it
                 inner join alumno al on it.id_alumno=al.id_alumno
-                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 inner join cat_tipo_intervencion cti on it.id_tipo_intervencion=cti.id_tipo_intervencion
-
-                left join alerta aa on it.id_alerta=aa.id_alerta
-                left join reporte_docente rd on it.id_reporte_docente=rd.id_reporte_docente
-                left join carga c on c.id_carga=coalesce(aa.id_carga,rd.id_carga)
-                left join materia m on c.id_materia=m.id_materia
-                left join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
-                left join grupo gcl on gccl.id_grupo=gcl.id_grupo
-                left join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
-                left join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
-
-                left join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
-                left join grupo gad on gcad.id_grupo=gad.id_grupo
-                left join cat_turno ctad on gad.id_turno=ctad.id_turno
-                left join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
-
-                where it.id_alumno=?
-                and it.id_maestro_tutor=?
-                and ta.id_maestro_tutor=?
+                inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
+                inner join grupo gad on gcad.id_grupo=gad.id_grupo
+                inner join cat_turno ctad on gad.id_turno=ctad.id_turno
+                inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                 and ta.id_estatus_tutoria=1
+                where it.id_alumno=?
+                and ta.id_tutoria is null
                 order by it.fecha_intervencion desc,it.id_intervencion desc
                 """;
 
@@ -535,8 +654,6 @@ public class OrientacionTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idAlumnoActual);
-            ps.setInt(2, getIdTutorActual());
-            ps.setInt(3, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -571,10 +688,8 @@ public class OrientacionTController extends BaseController {
                     concat(
                     '[ALERTA] ',
                     cta.nombre,
-                    ' | grupo alumno: ',
-                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
-                    ' | clase: ',
-                    concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre),
+                    ' | ',
+                    concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre),
                     ' | ',
                     m.nombre,
                     ' | ',
@@ -583,24 +698,17 @@ public class OrientacionTController extends BaseController {
                     a.creada_en as fecha_evento
                     from alerta a
                     inner join alumno al on a.id_alumno=al.id_alumno
-                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join carga c on a.id_carga=c.id_carga
                     inner join materia m on c.id_materia=m.id_materia
-
-                    inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
-                    inner join grupo gad on gcad.id_grupo=gad.id_grupo
-                    inner join cat_turno ctad on gad.id_turno=ctad.id_turno
-                    inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
-
-                    inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
-                    inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
-                    inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
-                    inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
-
+                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                    inner join grupo g on gc.id_grupo=g.id_grupo
+                    inner join cat_turno ct on g.id_turno=ct.id_turno
+                    inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                     inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
-                    where a.id_alumno=?
-                    and ta.id_maestro_tutor=?
+                    left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                     and ta.id_estatus_tutoria=1
+                    where a.id_alumno=?
+                    and ta.id_tutoria is null
 
                     union all
 
@@ -608,10 +716,8 @@ public class OrientacionTController extends BaseController {
                     concat(
                     '[REPORTE] ',
                     cta.nombre,
-                    ' | grupo alumno: ',
-                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
-                    ' | clase: ',
-                    concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre),
+                    ' | ',
+                    concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre),
                     ' | ',
                     m.nombre,
                     ' | ',
@@ -620,24 +726,17 @@ public class OrientacionTController extends BaseController {
                     rd.creado_en as fecha_evento
                     from reporte_docente rd
                     inner join alumno al on rd.id_alumno=al.id_alumno
-                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join carga c on rd.id_carga=c.id_carga
                     inner join materia m on c.id_materia=m.id_materia
-
-                    inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
-                    inner join grupo gad on gcad.id_grupo=gad.id_grupo
-                    inner join cat_turno ctad on gad.id_turno=ctad.id_turno
-                    inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
-
-                    inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
-                    inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
-                    inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
-                    inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
-
+                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
+                    inner join grupo g on gc.id_grupo=g.id_grupo
+                    inner join cat_turno ct on g.id_turno=ct.id_turno
+                    inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
                     inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
-                    where rd.id_alumno=?
-                    and ta.id_maestro_tutor=?
+                    left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                     and ta.id_estatus_tutoria=1
+                    where rd.id_alumno=?
+                    and ta.id_tutoria is null
 
                     union all
 
@@ -653,12 +752,11 @@ public class OrientacionTController extends BaseController {
                     it.fecha_intervencion as fecha_evento
                     from intervencion_tutor it
                     inner join alumno al on it.id_alumno=al.id_alumno
-                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join cat_tipo_intervencion cti on it.id_tipo_intervencion=cti.id_tipo_intervencion
-                    where it.id_alumno=?
-                    and it.id_maestro_tutor=?
-                    and ta.id_maestro_tutor=?
+                    left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                     and ta.id_estatus_tutoria=1
+                    where it.id_alumno=?
+                    and ta.id_tutoria is null
                 ) eventos
                 order by fecha_evento desc
                 """;
@@ -667,12 +765,8 @@ public class OrientacionTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idAlumnoActual);
-            ps.setInt(2, getIdTutorActual());
+            ps.setInt(2, idAlumnoActual);
             ps.setInt(3, idAlumnoActual);
-            ps.setInt(4, getIdTutorActual());
-            ps.setInt(5, idAlumnoActual);
-            ps.setInt(6, getIdTutorActual());
-            ps.setInt(7, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -688,50 +782,44 @@ public class OrientacionTController extends BaseController {
         }
     }
 
-    private void cerrarAlertaSiExiste(Connection con) throws Exception {
-        if (SesionOrientacion.getIdAlerta() <= 0) {
+    private void marcarAlertaEnSeguimientoSiExiste(Connection con) throws Exception {
+        if (idAlertaActual <= 0) {
             return;
         }
 
         String sql = """
                 update alerta a
                 inner join alumno al on a.id_alumno=al.id_alumno
-                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
-                set
-                a.id_estatus_alerta=0,
-                a.cerrada_en=now()
-                where a.id_alerta=?
-                and ta.id_maestro_tutor=?
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                 and ta.id_estatus_tutoria=1
-                and al.id_estatus_general=1
+                set a.id_estatus_alerta=2
+                where a.id_alerta=?
+                and ta.id_tutoria is null
                 """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, SesionOrientacion.getIdAlerta());
-            ps.setInt(2, getIdTutorActual());
+            ps.setInt(1, idAlertaActual);
             ps.executeUpdate();
         }
     }
 
-    private void cerrarReporteSiExiste(Connection con) throws Exception {
-        if (SesionOrientacion.getIdReporteDocente() <= 0) {
+    private void marcarReporteEnSeguimientoSiExiste(Connection con) throws Exception {
+        if (idReporteActual <= 0) {
             return;
         }
 
         String sql = """
                 update reporte_docente rd
                 inner join alumno al on rd.id_alumno=al.id_alumno
-                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
-                set rd.id_estatus_reporte_docente=0
-                where rd.id_reporte_docente=?
-                and ta.id_maestro_tutor=?
+                left join tutoria_asignacion ta on ta.id_grupo_ciclo=al.id_grupo_ciclo
                 and ta.id_estatus_tutoria=1
-                and al.id_estatus_general=1
+                set rd.id_estatus_reporte_docente=2
+                where rd.id_reporte_docente=?
+                and ta.id_tutoria is null
                 """;
 
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, SesionOrientacion.getIdReporteDocente());
-            ps.setInt(2, getIdTutorActual());
+            ps.setInt(1, idReporteActual);
             ps.executeUpdate();
         }
     }

@@ -4,9 +4,11 @@ import application.proyecto.controllers.BaseController;
 import application.proyecto.utils.ConexionBD;
 import application.proyecto.utils.SesionOrientacion;
 import application.proyecto.utils.SesionUsuario;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,9 +19,11 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.StackPane;
 
 import java.io.IOException;
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GestionDeReportesTController extends BaseController {
 
@@ -57,9 +61,8 @@ public class GestionDeReportesTController extends BaseController {
         configurarTabla();
         configurarFiltros();
         configurarEventos();
-        cargarGrupos();
-        cargarReportes();
         limpiarDetalle();
+        cargarDatosAsync();
     }
 
     private int getIdTutorActual() {
@@ -91,7 +94,6 @@ public class GestionDeReportesTController extends BaseController {
                 "todos",
                 "asistencia",
                 "actividad",
-                "calificacion",
                 "conducta"
         ));
         cmbTipoFiltro.setValue("todos");
@@ -99,11 +101,7 @@ public class GestionDeReportesTController extends BaseController {
         cmbEstatusFiltro.setItems(FXCollections.observableArrayList(
                 "todos",
                 "pendiente",
-                "seguimiento",
-                "cerrado",
-                "cerrada",
-                "activa",
-                "inactiva"
+                "cerrada"
         ));
         cmbEstatusFiltro.setValue("todos");
     }
@@ -111,113 +109,92 @@ public class GestionDeReportesTController extends BaseController {
     private void configurarEventos() {
         cmbGrupoFiltro.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
         cmbTipoFiltro.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
-        cmbEstatusFiltro.valueProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
+        cmbEstatusFiltro.valueProperty().addListener((obs, oldValue, newValue) -> cargarDatosAsync());
         txtBuscarTabla.textProperty().addListener((obs, oldValue, newValue) -> aplicarFiltro());
     }
 
-    private void cargarGrupos() {
-        cmbGrupoFiltro.getItems().clear();
-        cmbGrupoFiltro.getItems().add("todos");
-
+    private void cargarDatosAsync() {
         int idTutor = getIdTutorActual();
+        String estatusSeleccionado = valorCombo(cmbEstatusFiltro);
+        String grupoSeleccionado = cmbGrupoFiltro.getValue();
 
         if (idTutor == 0) {
             mostrarError("no hay tutor en sesion");
             return;
         }
 
-        String sql = """
-                select distinct
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo
-                from tutoria_asignacion ta
-                inner join grupo_ciclo gc on ta.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
-                where ta.id_maestro_tutor=?
-                and ta.id_estatus_tutoria=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                order by grupo
-                """;
+        Task<DatosGestionReportes> task = new Task<>() {
+            @Override
+            protected DatosGestionReportes call() throws Exception {
+                DatosGestionReportes datos = new DatosGestionReportes();
 
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, idTutor);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    cmbGrupoFiltro.getItems().add(rs.getString("grupo"));
+                try (Connection con = ConexionBD.conectar()) {
+                    cargarGruposDesdeSP(con, idTutor, datos);
+                    cargarReportesDesdeSP(con, idTutor, estatusSeleccionado, datos);
                 }
+
+                return datos;
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            DatosGestionReportes datos = task.getValue();
+
+            cmbGrupoFiltro.getItems().setAll(datos.grupos);
+
+            if (grupoSeleccionado != null && datos.grupos.contains(grupoSeleccionado)) {
+                cmbGrupoFiltro.setValue(grupoSeleccionado);
+            } else {
+                cmbGrupoFiltro.setValue("todos");
             }
 
-            cmbGrupoFiltro.setValue("todos");
+            listaReportes.setAll(datos.reportes);
+            aplicarFiltro();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al cargar grupos");
+            reporteSeleccionado = null;
+            tablaGestionReportesTutor.getSelectionModel().clearSelection();
+            limpiarDetalle();
+        });
+
+        task.setOnFailed(event -> {
+            task.getException().printStackTrace();
+            mostrarError("error al cargar reportes");
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void cargarGruposDesdeSP(Connection con, int idTutor, DatosGestionReportes datos) throws Exception {
+        datos.grupos.clear();
+        datos.grupos.add("todos");
+
+        String sql = "{call sp_tutor_grupos(?)}";
+
+        try (CallableStatement cs = con.prepareCall(sql)) {
+            cs.setInt(1, idTutor);
+
+            try (ResultSet rs = cs.executeQuery()) {
+                while (rs.next()) {
+                    datos.grupos.add(rs.getString("grupo"));
+                }
+            }
         }
     }
 
-    private void cargarReportes() {
-        listaReportes.clear();
+    private void cargarReportesDesdeSP(Connection con, int idTutor, String estatusSeleccionado, DatosGestionReportes datos) throws Exception {
+        datos.reportes.clear();
 
-        int idTutor = getIdTutorActual();
+        String sql = "{call sp_tutor_reportes_gestion(?,?)}";
 
-        if (idTutor == 0) {
-            mostrarError("no hay tutor en sesion");
-            return;
-        }
+        try (CallableStatement cs = con.prepareCall(sql)) {
+            cs.setInt(1, idTutor);
+            cs.setString(2, estatusSeleccionado);
 
-        String sql = """
-                select distinct
-                rd.id_reporte_docente,
-                al.id_alumno,
-                al.num_control,
-                concat(al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno,
-                concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre) as grupo,
-                g.semestre,
-                ct.nombre as turno,
-                concat(m.clave,' - ',m.nombre) as materia,
-                concat(ma.nombre,' ',ma.apellido_paterno,' ',ma.apellido_materno) as maestro,
-                cta.nombre as tipo_reporte,
-                rd.descripcion,
-                cer.nombre as estatus,
-                rd.creado_en as fecha_orden,
-                date_format(rd.creado_en,'%Y-%m-%d') as fecha
-                from tutoria_asignacion ta
-                inner join carga c on ta.id_grupo_ciclo=c.id_grupo_ciclo
-                inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                inner join grupo g on gc.id_grupo=g.id_grupo
-                inner join cat_turno ct on g.id_turno=ct.id_turno
-                inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
-                inner join reporte_docente rd on rd.id_carga=c.id_carga
-                inner join alumno al on rd.id_alumno=al.id_alumno
-                inner join alumno_carga ac on ac.id_carga=c.id_carga
-                and ac.id_alumno=al.id_alumno
-                inner join materia m on c.id_materia=m.id_materia
-                inner join maestro ma on c.id_maestro=ma.id_maestro
-                inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
-                inner join cat_estatus_reporte_docente cer on rd.id_estatus_reporte_docente=cer.id_estatus_reporte_docente
-                where ta.id_maestro_tutor=?
-                and ta.id_estatus_tutoria=1
-                and c.id_estatus_general=1
-                and gc.id_estatus_general=1
-                and g.id_estatus_general=1
-                and al.id_estatus_general=1
-                and ac.id_estatus_general=1
-                order by fecha_orden desc
-                """;
-
-        try (Connection con = ConexionBD.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setInt(1, idTutor);
-
-            try (ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = cs.executeQuery()) {
                 while (rs.next()) {
-                    listaReportes.add(new ReporteTutor(
+                    datos.reportes.add(new ReporteTutor(
                             rs.getInt("id_reporte_docente"),
                             rs.getInt("id_alumno"),
                             rs.getString("num_control"),
@@ -234,12 +211,6 @@ public class GestionDeReportesTController extends BaseController {
                     ));
                 }
             }
-
-            aplicarFiltro();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarError("error al cargar reportes");
         }
     }
 
@@ -268,13 +239,8 @@ public class GestionDeReportesTController extends BaseController {
 
             boolean coincideEstatus = switch (estatusFiltro) {
                 case "pendiente" -> reporte.getEstatus().equalsIgnoreCase("pendiente");
-                case "seguimiento" -> reporte.getEstatus().equalsIgnoreCase("seguimiento");
-                case "cerrado" -> reporte.getEstatus().equalsIgnoreCase("cerrado");
-                case "cerrada" -> reporte.getEstatus().equalsIgnoreCase("cerrada");
-                case "activa" -> reporte.getEstatus().equalsIgnoreCase("pendiente") ||
-                        reporte.getEstatus().equalsIgnoreCase("seguimiento");
-                case "inactiva" -> reporte.getEstatus().equalsIgnoreCase("cerrado") ||
-                        reporte.getEstatus().equalsIgnoreCase("cerrada");
+                case "cerrada" -> reporte.getEstatus().equalsIgnoreCase("cerrada") ||
+                        reporte.getEstatus().equalsIgnoreCase("cerrado");
                 default -> true;
             };
 
@@ -292,6 +258,10 @@ public class GestionDeReportesTController extends BaseController {
 
             return coincideGrupo && coincideTipo && coincideEstatus && coincideTexto;
         });
+    }
+
+    private String valorCombo(ComboBox<String> combo) {
+        return combo.getValue() == null ? "todos" : combo.getValue().trim().toLowerCase();
     }
 
     private void mostrarDetalle(ReporteTutor reporte) {
@@ -334,6 +304,67 @@ public class GestionDeReportesTController extends BaseController {
             return;
         }
 
+        marcarReporteEnSeguimientoAsync(event);
+    }
+
+    private void marcarReporteEnSeguimientoAsync(ActionEvent actionEvent) {
+        if (reporteSeleccionado == null) {
+            return;
+        }
+
+        int idTutor = getIdTutorActual();
+        int idReporte = reporteSeleccionado.getIdReporte();
+
+        Task<Integer> task = new Task<>() {
+            @Override
+            protected Integer call() throws Exception {
+                String sql = "{call sp_tutor_actualizar_estatus_reporte(?,?,?)}";
+
+                try (Connection con = ConexionBD.conectar();
+                     CallableStatement cs = con.prepareCall(sql)) {
+
+                    cs.setInt(1, idTutor);
+                    cs.setInt(2, idReporte);
+                    cs.setInt(3, 2);
+
+                    try (ResultSet rs = cs.executeQuery()) {
+                        if (rs.next()) {
+                            return rs.getInt("filas_afectadas");
+                        }
+                    }
+                }
+
+                return 0;
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            int filas = task.getValue();
+
+            if (filas == 0) {
+                mostrarError("no tienes permiso para modificar este reporte");
+                return;
+            }
+
+            prepararSesionOrientacion();
+            cargarVistaOrientacion(actionEvent);
+        });
+
+        task.setOnFailed(event -> {
+            task.getException().printStackTrace();
+            mostrarError("error al cambiar reporte a seguimiento");
+        });
+
+        Thread hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+    }
+
+    private void prepararSesionOrientacion() {
+        if (reporteSeleccionado == null) {
+            return;
+        }
+
         SesionOrientacion.limpiar();
 
         SesionOrientacion.setIdAlerta(0);
@@ -349,8 +380,6 @@ public class GestionDeReportesTController extends BaseController {
         SesionOrientacion.setPrioridad("sin prioridad");
         SesionOrientacion.setMotivoDetalle(reporteSeleccionado.getDescripcion());
         SesionOrientacion.setFechaAlerta(reporteSeleccionado.getFecha());
-
-        cargarVistaOrientacion(event);
     }
 
     private void cargarVistaOrientacion(ActionEvent event) {
@@ -375,12 +404,24 @@ public class GestionDeReportesTController extends BaseController {
         }
     }
 
+    @FXML
+    private void handleActualizar() {
+        cargarDatosAsync();
+    }
+
     private void mostrarError(String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("error");
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("error");
+            alert.setHeaderText(null);
+            alert.setContentText(mensaje);
+            alert.showAndWait();
+        });
+    }
+
+    private static class DatosGestionReportes {
+        private final List<String> grupos = new ArrayList<>();
+        private final List<ReporteTutor> reportes = new ArrayList<>();
     }
 
     public static class ReporteTutor {
@@ -409,7 +450,7 @@ public class GestionDeReportesTController extends BaseController {
             this.semestre = textoSeguro(semestre);
             this.turno = textoSeguro(turno);
             this.materia = textoSeguro(materia);
-            this.maestro = textoSeguro(maestro).isEmpty() ? "sin maestro" : maestro;
+            this.maestro = textoSeguro(maestro).isEmpty() ? "sin maestro" : textoSeguro(maestro);
             this.tipoReporte = textoSeguro(tipoReporte);
             this.descripcion = textoSeguro(descripcion);
             this.estatus = textoSeguro(estatus);

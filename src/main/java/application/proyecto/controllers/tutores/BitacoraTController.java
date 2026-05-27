@@ -96,15 +96,11 @@ public class BitacoraTController extends BaseController {
                 al.id_alumno,
                 concat(al.num_control,' - ',al.nombre,' ',al.apellido_paterno,' ',al.apellido_materno) as alumno
                 from alumno al
-                left join alumno_carga ac on al.id_alumno=ac.id_alumno
-                and ac.id_estatus_general=1
-                left join carga c on ac.id_carga=c.id_carga
-                and c.id_estatus_general=1
+                inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                 where al.id_estatus_general=1
-                and (
-                    al.id_grupo_ciclo=?
-                    or c.id_grupo_ciclo=?
-                )
+                and al.id_grupo_ciclo=?
+                and ta.id_maestro_tutor=?
+                and ta.id_estatus_tutoria=1
                 order by alumno
                 """;
 
@@ -112,7 +108,7 @@ public class BitacoraTController extends BaseController {
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, grupo.getId());
-            ps.setInt(2, grupo.getId());
+            ps.setInt(2, getIdTutorActual());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -124,7 +120,7 @@ public class BitacoraTController extends BaseController {
             }
 
             if (cbAlumnoBitacora.getItems().isEmpty()) {
-                lblMensajeBitacora.setText("No hay alumnos relacionados con este grupo o sus clases");
+                lblMensajeBitacora.setText("No hay alumnos registrados en este grupo tutorado");
             } else {
                 lblMensajeBitacora.setText("Selecciona un alumno y presiona Buscar");
             }
@@ -163,8 +159,10 @@ public class BitacoraTController extends BaseController {
                     concat(
                     '[ALERTA] ',
                     cta.nombre,
-                    ' | ',
-                    concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre),
+                    ' | grupo alumno: ',
+                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
+                    ' | clase: ',
+                    concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre),
                     ' | ',
                     ifnull(m.nombre,'sin materia'),
                     ' | ',
@@ -172,15 +170,27 @@ public class BitacoraTController extends BaseController {
                     ) as evento,
                     a.creada_en as fecha_evento
                     from alerta a
+                    inner join alumno al on a.id_alumno=al.id_alumno
+                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join cat_tipo_alerta cta on a.id_tipo_alerta=cta.id_tipo_alerta
                     inner join carga c on a.id_carga=c.id_carga
                     inner join materia m on c.id_materia=m.id_materia
-                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                    inner join grupo g on gc.id_grupo=g.id_grupo
-                    inner join cat_turno ct on g.id_turno=ct.id_turno
-                    inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+
+                    inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
+                    inner join grupo gad on gcad.id_grupo=gad.id_grupo
+                    inner join cat_turno ctad on gad.id_turno=ctad.id_turno
+                    inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
+
+                    inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
+                    inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
+                    inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
+                    inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
+
                     where a.id_alumno=?
-                    and c.id_grupo_ciclo=?
+                    and al.id_grupo_ciclo=?
+                    and ta.id_maestro_tutor=?
+                    and ta.id_estatus_tutoria=1
+                    and al.id_estatus_general=1
 
                     union all
 
@@ -188,8 +198,10 @@ public class BitacoraTController extends BaseController {
                     concat(
                     '[REPORTE] ',
                     cta.nombre,
-                    ' | ',
-                    concat(g.nombre,' - ',ct.nombre,' - ',ce.nombre),
+                    ' | grupo alumno: ',
+                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
+                    ' | clase: ',
+                    concat(gcl.nombre,' - ',ctcl.nombre,' - ',cecl.nombre),
                     ' | ',
                     ifnull(m.nombre,'sin materia'),
                     ' | ',
@@ -197,15 +209,27 @@ public class BitacoraTController extends BaseController {
                     ) as evento,
                     rd.creado_en as fecha_evento
                     from reporte_docente rd
+                    inner join alumno al on rd.id_alumno=al.id_alumno
+                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join cat_tipo_alerta cta on rd.id_tipo_alerta=cta.id_tipo_alerta
                     inner join carga c on rd.id_carga=c.id_carga
                     inner join materia m on c.id_materia=m.id_materia
-                    inner join grupo_ciclo gc on c.id_grupo_ciclo=gc.id_grupo_ciclo
-                    inner join grupo g on gc.id_grupo=g.id_grupo
-                    inner join cat_turno ct on g.id_turno=ct.id_turno
-                    inner join ciclo_escolar ce on gc.id_ciclo_escolar=ce.id_ciclo_escolar
+
+                    inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
+                    inner join grupo gad on gcad.id_grupo=gad.id_grupo
+                    inner join cat_turno ctad on gad.id_turno=ctad.id_turno
+                    inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
+
+                    inner join grupo_ciclo gccl on c.id_grupo_ciclo=gccl.id_grupo_ciclo
+                    inner join grupo gcl on gccl.id_grupo=gcl.id_grupo
+                    inner join cat_turno ctcl on gcl.id_turno=ctcl.id_turno
+                    inner join ciclo_escolar cecl on gccl.id_ciclo_escolar=cecl.id_ciclo_escolar
+
                     where rd.id_alumno=?
-                    and c.id_grupo_ciclo=?
+                    and al.id_grupo_ciclo=?
+                    and ta.id_maestro_tutor=?
+                    and ta.id_estatus_tutoria=1
+                    and al.id_estatus_general=1
 
                     union all
 
@@ -213,6 +237,8 @@ public class BitacoraTController extends BaseController {
                     concat(
                     '[ORIENTACION] ',
                     cti.nombre,
+                    ' | grupo alumno: ',
+                    concat(gad.nombre,' - ',ctad.nombre,' - ',cead.nombre),
                     ' | acuerdos: ',
                     ifnull(it.acuerdos,'sin acuerdos'),
                     ' | ',
@@ -220,9 +246,21 @@ public class BitacoraTController extends BaseController {
                     ) as evento,
                     it.fecha_intervencion as fecha_evento
                     from intervencion_tutor it
+                    inner join alumno al on it.id_alumno=al.id_alumno
+                    inner join tutoria_asignacion ta on al.id_grupo_ciclo=ta.id_grupo_ciclo
                     inner join cat_tipo_intervencion cti on it.id_tipo_intervencion=cti.id_tipo_intervencion
+
+                    inner join grupo_ciclo gcad on al.id_grupo_ciclo=gcad.id_grupo_ciclo
+                    inner join grupo gad on gcad.id_grupo=gad.id_grupo
+                    inner join cat_turno ctad on gad.id_turno=ctad.id_turno
+                    inner join ciclo_escolar cead on gcad.id_ciclo_escolar=cead.id_ciclo_escolar
+
                     where it.id_alumno=?
+                    and al.id_grupo_ciclo=?
                     and it.id_maestro_tutor=?
+                    and ta.id_maestro_tutor=?
+                    and ta.id_estatus_tutoria=1
+                    and al.id_estatus_general=1
                 ) eventos
                 order by fecha_evento desc
                 """;
@@ -230,12 +268,20 @@ public class BitacoraTController extends BaseController {
         try (Connection con = ConexionBD.conectar();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
+            int idTutor = getIdTutorActual();
+
             ps.setInt(1, idAlumno);
             ps.setInt(2, idGrupoCiclo);
-            ps.setInt(3, idAlumno);
-            ps.setInt(4, idGrupoCiclo);
-            ps.setInt(5, idAlumno);
-            ps.setInt(6, getIdTutorActual());
+            ps.setInt(3, idTutor);
+
+            ps.setInt(4, idAlumno);
+            ps.setInt(5, idGrupoCiclo);
+            ps.setInt(6, idTutor);
+
+            ps.setInt(7, idAlumno);
+            ps.setInt(8, idGrupoCiclo);
+            ps.setInt(9, idTutor);
+            ps.setInt(10, idTutor);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

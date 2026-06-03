@@ -67,6 +67,17 @@
                </graphic>
             </ToggleButton>
 
+
+            <ToggleButton fx:id="btncargamaterias" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectCargaMateriasmaterias" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Importacion de Clases" textFill="WHITE">
+               <graphic>
+                  <ImageView fitHeight="38.0" fitWidth="57.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../fotos/IconoImportacion.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </ToggleButton>
+
             <ToggleButton fx:id="btnmaterias" alignment="CENTER_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectmaterias" prefHeight="52.0" style="-fx-background-color: #1F2A44;" text="Clases" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="38.0" fitWidth="57.0" pickOnBounds="true" preserveRatio="true">

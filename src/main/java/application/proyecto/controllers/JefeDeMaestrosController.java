@@ -29,6 +29,7 @@ public class JefeDeMaestrosController {
     @FXML private ToggleButton btnestadisticas;
     @FXML private ToggleButton btnusuarios;
     @FXML private ToggleButton btnperfil;
+    @FXML private ToggleButton btncargamaterias;
 
     private List<ToggleButton> botonesMenu;
 
@@ -78,6 +79,7 @@ public class JefeDeMaestrosController {
                 btnHistorialAlumnos,
                 btnestadisticas,
                 btnusuarios,
+                btncargamaterias,
                 btnperfil
         );
 
@@ -150,6 +152,12 @@ public class JefeDeMaestrosController {
     private void selectCatalogoMateriasmaterias() {
         marcarBotonActivo(btncatmaterias);
         cargarVista("/application/proyecto/views/jefedemaestros/CatalogoMateriasJDM.fxml");
+    }
+
+    @FXML
+    private void selectCargaMateriasmaterias() {
+        marcarBotonActivo(btncargamaterias);
+        cargarVista("/application/proyecto/views/jefedemaestros/ImportacionClasesJDM.fxml");
     }
 
     @FXML
